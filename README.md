@@ -2,7 +2,7 @@
 
 A Philips Hue Python API with command-line client.
 
-* Notice: This project is brand-new and the API is still evolving. Nothing you see here is set in stone, there are no official releases, and you should absolutely not use this as a basis for anything important.*
+*Notice: This project is brand-new and the API is still evolving. Nothing you see here is set in stone, there are no official releases, and you should absolutely not use this as a basis for anything important.*
 
 ## Goals
 
