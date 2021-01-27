@@ -266,6 +266,24 @@ def do_rule(args):
 			raw_print(args, hue.get_all_rules(raw=True))
 			return
 
+		rules= hue.get_all_rules()
+	else:
+		for ruleid in args.id:
+			if args.raw or args.pretty:
+				raw_print(args, hue.get_rule(ruleid, raw=True))
+			else:
+				rule= hue.get_rule(ruleid)
+				rules[ruleid]= rule
+
+		if args.raw:
+			return
+
+	for rule in rules.values():
+		print(rule)
+		for condition in rule.conditions:
+			print(f'   {condition}')
+		print()
+
 #----------------------------------------------------------------------------
 # Scenes
 #----------------------------------------------------------------------------
