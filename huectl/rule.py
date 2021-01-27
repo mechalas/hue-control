@@ -1,4 +1,6 @@
 from huectl.exception import UnknownOperator, APIVersion
+from huectl.version import HueApiVersion
+from huectl.time import HueDateTime
 
 class HueOperator:
 	Equals= 'eq'
@@ -23,15 +25,15 @@ class HueOperator:
 		TimeNotIn: HueApiVersion('1.14')
 	}
 
-	@classmethod
-	def supported(cls, otype, version):
+	@staticmethod
+	def supported(otype, version):
 		if HueOperator._supported[otype] <= version:
 			return True
 
 		return False
 
 class HueCondition:
-	def __init__(self, rule=None, address=None, operator=None, value=None):
+	def __init__(self, rule, address=None, operator=None, value=None):
 		self.rule= rule
 		self.address=None
 		self.operator= None
@@ -47,15 +49,19 @@ class HueCondition:
 
 		apiver= self.rule.bridge.api_version()
 
-		if not hasattr(HueOperator, op):
-			raise UnknownOperator(op)
-
-		if not op.supported(apiver):
+		if not HueOperator.supported(operator, apiver):
 			raise APIVersion(bridge.api_version())
 
 		self.address= address
 		self.operator= operator
-		self.value= value
+		if value:
+			self.value= value
+
+	def __str__(self):
+		s= f'<HueCondition> {self.address} {self.operator}'
+		if self.value:
+			s+= ' '+self.value
+		return s
 
 class HueRuleStatus:
 	Enabled= 'enabled'
@@ -69,10 +75,9 @@ class HueRule:
 		self.creationtime= None
 		self.timestriggered= 0
 		self.owner= None
-		self.status= None
+		self.status= HueRuleStatus.Enabled
 		self.conditions= list()
 		self.actions= list()
-		self.enabled= HueConditionStatus.Enabled
 
 		if bridge is None:
 			raise ValueError('bridge cannot be None')
@@ -90,10 +95,14 @@ class HueRule:
 		else:
 			raise TypeError 
 
-	def load(self, data):
+	def __str__(self):
+		return f'<HueRule> {self.ruleid} {self.name}, {self.status}'
+
+	def _load(self, data):
 		self.name= data['name']
 		if 'lasttriggered' in data:
-			self.lasttriggered= HueDateTime(data['lasttriggered'])
+			if data['lasttriggered'] != 'none':
+				self.lasttriggered= HueDateTime(data['lasttriggered'])
 
 		if 'creationtime' in data:
 			self.lasttriggered= HueDateTime(data['creationtime'])
@@ -102,4 +111,13 @@ class HueRule:
 			self.status= data['status']
 
 		self.owner= data['owner']
+
+		for cdata in data['conditions']:
+			if 'value' in cdata:
+				value= cdata['value']
+			else:
+				value= None
+
+			self.conditions.append(HueCondition(self, address=cdata['address'],
+				operator=cdata['operator'], value=value))
 
