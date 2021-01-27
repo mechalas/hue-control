@@ -43,9 +43,6 @@ def colorname(*args):
 	else:
 		raise ValueError
 
-	# Our color definitions are from -15 deg to +15 deg, so add
-	# 15 to our incoming hue
-
 	if h > 360:
 		h-= 360*int(h/360)
 
