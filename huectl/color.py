@@ -378,6 +378,9 @@ class HueColorTemp:
 	def kelvin(self):
 		return int(round(mired_to_kelvin(self.ct), 0))
 
+	def xy(self):
+		return cct_to_xy(self.kelvin())
+
 #===========================================================================
 # Utility functions
 #===========================================================================
