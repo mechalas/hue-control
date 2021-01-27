@@ -1,0 +1,715 @@
+#! /usr/bin/python3
+
+from huectl.bridge import HueBridge, HueBridgeSearch
+from huectl.exception import BridgeDefined
+from huectl.group import HueGroup
+from argparse import ArgumentParser
+import json
+import asyncio
+import ssdp
+import socket
+import urllib.request
+import xml.etree.ElementTree as ET
+import os.path
+import configparser
+import shutil
+
+#---------------------------------------------------------------------------
+# Config file class for storing Hue bridge configurations (userid's, 
+# IP addresses/hostnames, serial numbers, and friendly names).
+#
+# We store user_ids the same way the Hue Bridge sends them to us
+# when it auto-generates one: an ASCII-encoded hex string (essentially
+# UUIDs).
+#---------------------------------------------------------------------------
+
+class Config:
+	DefaultFilename= '~/.huemgr'
+
+	def __init__(self, filename):
+		if not filename:
+			filename= Config.DefaultFilename
+
+		self.filename= os.path.expanduser(filename)
+		self.cf= configparser.ConfigParser()
+
+		self.load()
+
+	# Load/save
+	#----------------------------------------
+
+	def load(self):
+		self.cf.read(self.filename)
+
+	def save(self):
+		# Make a backup first
+		shutil.copyfile(self.filename, self.filename+'.bak')
+
+		# Write new config
+		with open(self.filename, 'w') as f:
+			self.cf.write(f)
+
+	# Bridge def management
+	#----------------------------------------
+
+	def add_bridge(self, name='', addr=None, serial=None, userid=None,
+		overwrite=True):
+		if addr is None:
+			raise TypeError
+
+		if serial is None:
+			raise TypeError
+
+		if userid is None:
+			raise TypeError
+
+		if not overwrite:
+			check= self.find_bridge(name=name)
+			if check is not None:
+				raise BridgeExists(name=name)
+
+			check= self.find_bridge(addr=addr)
+			if check is not None:
+				raise BridgeExists(name=name)
+
+			check= self.find_bridge(serial=serial)
+			if check is not None:
+				raise BridgeExists(name=name)
+
+		self.cf[serial]= {
+			'name': name,
+			'addr': addr,
+			'user_id': userid
+		}
+
+		return True
+
+	def _get_serial(self, name=None, addr=None):
+		cf= self.cf
+
+		if name:
+			for serial in cf.sections():
+				d= cf[serial]
+				if 'name' in d:
+					if name == d['name']:
+						return serial
+			return None
+
+		if addr:
+			for serial in cf.sections():
+				d= cf[serial]
+				if 'addr' in d:
+					if addr == d['addr']:
+						return serial
+			return None
+
+		return None
+
+	
+	def find_bridge(self, *args, name=None, addr=None, serial=None):
+		cf= self.cf
+
+		if len(args):
+			# Search by serial number, then address, then name.
+			search= args[0]
+
+			bridge= self.find_bridge(serial=search)
+			if bridge:
+				return bridge
+
+			bridge= self.find_bridge(addr=search)
+			if bridge:
+				return bridge
+
+			bridge= self.find_bridge(name=search)
+			if bridge:
+				return bridge
+
+		elif serial:
+			return self.bridge(serial)
+
+		elif name is not None:
+			serial= self._get_serial(name=name)
+			if serial:
+				return self.bridge(serial)
+			return None
+
+		elif addr is not None:
+			serial= self._get_serial(addr=addr)
+			if serial:
+				return self.bridge(serial)
+			return None
+
+		if 'DEFAULT' not in cf:
+			return None
+
+		if 'default_bridge' in cf['DEFAULT']:
+			return self.bridge(cf['DEFAULT']['default_bridge'])
+
+		return None
+
+	def bridge(self, serial):
+		if serial in self.cf:
+			data= dict(self.cf[serial])
+			data['serial_number']= serial
+			return data
+
+		return None
+
+#----------------------------------------------------------------------------
+# Bridge search
+#----------------------------------------------------------------------------
+
+def do_bridge_search(args):
+	kwargs= dict()
+
+	if args.search_time:
+		kwargs['search_time']= args.search_time
+
+	bridges= HueBridgeSearch.search(**kwargs)
+	if bridges is not None:
+		print(json.dumps(bridges, indent=4))
+		exit(0)
+	exit(1)
+
+#----------------------------------------------------------------------------
+# Groups
+#----------------------------------------------------------------------------
+
+def do_group(args):
+	hue= init_hue(args)
+
+	groups= dict()
+
+	if not len(args.id):
+		if args.raw or args.pretty:
+			raw_print(args, hue.get_all_groups(raw=True))
+			return
+
+		lights= hue.get_all_lights()
+		groups= hue.get_all_groups(lights=lights)
+
+	else:
+		for groupid in args.id:
+			if args.raw or args.pretty:
+				raw_print(args, hue.get_group(groupid, raw=True))
+			else:
+				lights= hue.get_all_lights()
+				group= hue.get_group(groupid, lights=lights)
+				groups[groupid]= group
+
+		if args.raw:
+			return
+
+	for group in groups.values():
+		if group:
+			print(group)
+			for lightid in group.lights.keys(unresolved=True):
+				light= group.lights.item(lightid)
+				print('    '+str(light))
+			print()
+
+#----------------------------------------------------------------------------
+# Lights
+#----------------------------------------------------------------------------
+
+def do_light(args):
+	hue= init_hue(args)
+	
+	lights= dict()
+
+	if not len(args.id):
+		if args.raw or args.pretty:
+			raw_print(args, hue.get_all_lights(raw=True))
+			return
+
+		lights= hue.get_all_lights()
+
+	else:
+		for lightid in args.id:
+			if args.raw or args.pretty:
+				raw_print(args, hue.get_light(lightid, raw=True))
+			else:
+				light= hue.get_light(lightid)
+				lights[lightid]= light
+
+		if args.raw:
+			return
+
+	for light in lights.values():
+		if light:
+			print(light)
+
+#----------------------------------------------------------------------------
+# Rules
+#----------------------------------------------------------------------------
+
+def do_rule(args):
+	hue= init_hue(args)
+	rules= dict()
+
+	if not len(args.id):
+		if args.raw or args.pretty:
+			raw_print(args, hue.get_all_rules(raw=True))
+			return
+
+#----------------------------------------------------------------------------
+# Scenes
+#----------------------------------------------------------------------------
+
+def do_scene(args):
+	hue= init_hue(args)
+
+	scenes= dict()
+	if not (args.raw or args.pretty):
+		if args.summary:
+			lights= dict()
+		else:
+			lights= hue.get_all_lights()
+
+	if not len(args.id):
+		if args.raw or args.pretty:
+			raw_print(args, hue.get_all_scenes(raw=True))
+			return
+
+		if args.no_light_states or args.summary:
+			scenes= hue.get_all_scenes(lights=lights)
+		else:
+			t_scenes= hue.get_all_scenes(lights=lights)
+			for sceneid in t_scenes.keys():
+				scenes[sceneid]= hue.get_scene(sceneid, lights=lights)
+
+	else:
+		for sceneid in args.id:
+			if args.raw or args.pretty:
+				raw_print(args, hue.get_scene(sceneid, raw=True))
+			else:
+				scene= hue.get_scene(sceneid, lights=lights)
+
+				scenes[sceneid]= scene
+
+		if args.raw:
+			return
+
+	if args.sort:
+		if args.sort == 'id':
+			scenelist= map(lambda x: x[1], sorted(scenes.items()))
+		else:
+			scenelist= list(scenes.values())
+			scenelist.sort(key=lambda x: getattr(x, args.sort))
+	else:
+		scenelist= scenes.values()
+
+	for scene in scenelist:
+		if scene:
+			print(scene)
+			if args.summary:
+				continue
+
+			for lightid in scene.lights.keys(unresolved=True):
+				# We don't want the light's current state so we can't just
+				# print the object as a str()
+
+				light= scene.lights.item(lightid)
+				if light:
+					preset= ''
+					if not args.no_light_states:
+						# Get the light preset
+						preset= _scene_preset(scene, lightid)
+					print(f'    {lightid} {light.name}, {light.productname} {preset}')
+				else:
+					print(f'    {lightid} UNKNOWN LIGHT')
+			print()
+
+def _scene_preset(scene, lightid):
+	preset= scene.preset(lightid)
+	if not preset:
+		return ''
+
+	return str(preset)
+
+def do_scene_del(args):
+	hue= init_hue(args)
+
+	for sceneid in args.id:
+		try:
+			hue.delete_scene(sceneid)
+			print(f'Scene {sceneid} deleted')
+		except Exception as e:
+			print(e)
+
+def do_scene_play(args):
+	hue= init_hue(args)
+
+	for sceneid in args.id:
+		try:
+			hue.recall_scene(sceneid)
+			print(f'Playing scene {sceneid}')
+		except Exception as e:
+			print(e)
+
+#----------------------------------------------------------------------------
+# Schedules
+#----------------------------------------------------------------------------
+
+def do_schedule(args):
+	hue= init_hue(args)
+
+	scheds= dict()
+
+	if not len(args.id):
+		if args.raw or args.pretty:
+			raw_print(args, hue.get_all_schedules(raw=True))
+			return
+
+		scheds= hue.get_all_schedules()
+
+	else:
+		for schedid in args.id:
+			if args.raw or args.pretty:
+				raw_print(args, hue.get_schedule(schedid, raw=True))
+			else:
+				sched= hue.get_schedule(schedid)
+				scheds[schedid]= sched
+
+		if args.raw:
+			return
+
+	for sched in scheds.values():
+		print(sched)
+		target= sched.command.target()
+		print("    "+str(target))
+		if isinstance(target, HueGroup):
+			if 'scene' in sched.command.body:
+				scene= hue.get_scene(sched.command.body['scene'])
+				print("        "+str(scene))
+		print()
+
+
+#----------------------------------------------------------------------------
+# Sensors
+#----------------------------------------------------------------------------
+
+def do_sensor(args):
+	hue= init_hue(args)
+
+	sensors= dict()
+
+	if not len(args.id):
+		if args.raw or args.pretty:
+			raw_print(args, hue.get_all_sensors(raw=True))
+			return
+
+		sensors= hue.get_all_sensors()
+
+	else:
+		for sensorid in args.id:
+			if args.raw or args.pretty:
+				raw_print(args, hue.get_sensor(sensorid, raw=True))
+			else:
+				sensor= hue.get_sensor(sensorid)
+				sensors[sensorid]= sensor
+
+		if args.raw:
+			return
+
+	for sensor in sensors.values():
+		print(sensor)
+
+#----------------------------------------------------------------------------
+# Bridge Configuration
+#----------------------------------------------------------------------------
+
+def do_config_get(args):
+	hue= init_hue(args)
+
+	if args.all:
+		raw_print(args, hue.get_datastore())
+	elif args.raw or args.pretty:
+		raw_print(args, hue.get_configuration(raw=True))
+		return
+	
+
+def do_users_get(args):
+	hue= init_hue(args)
+
+	userlist= hue.userlist()
+	for user in userlist.users():
+		print(user)
+
+def do_bridge_add(args):
+	config= Config(args.config)
+
+	user_id= None
+	serial= None
+	
+	addr= args.address[0]
+	if args.serial_number is not None:
+		serial= args.serial_number
+
+	if args.user_id is None:
+		print(f'Registering a new user on bridge at {addr}.')
+
+		if not args.button_pressed:
+			input('Press the link button on the and hit <ENTER> to continue')
+
+		hue= HueBridge(addr)
+		try:
+			user_id= hue.create_user()
+		except Exception as e:
+			print(e)
+			print('User registration failed')
+			exit(1)
+	else:
+		user_id= args.user_id[0]
+
+	if serial is None:
+		hue= HueBridge(addr, user_id=user_id)
+		serial= hue.serial_number()
+
+	kwargs={
+		'userid': user_id,
+		'addr': addr,
+		'serial': serial,
+		'overwrite': True
+	}
+	if 'name' in args:
+		kwargs['name']= args.name
+
+	if config.add_bridge(**kwargs):
+		config.save()
+
+#----------------------------------------------------------------------------
+# Initialize API
+#----------------------------------------------------------------------------
+
+def init_hue(args):
+	config= Config(args.config)
+
+	bridge= config.find_bridge(args.bridge)
+	if bridge is None:
+		print('No bridge specified')
+		exit(1)
+
+	if 'user_id' in bridge:
+		user_id= bridge['user_id']
+	else:
+		print('No user registered for bridge {:s} at {:s}'.format(
+			bridge['serial_number'], bridge['addr']))
+		exit(1)
+
+	if 'addr' in bridge:
+		addr= bridge['addr']
+	else:
+		print('TO DO: discover bridge IP address')
+		exit(1)
+
+	hue= HueBridge(addr, user_id=user_id)
+	
+	return hue
+
+#----------------------------------------
+# Util functions
+#----------------------------------------
+
+def raw_print(args, s):
+	if args.pretty:
+		print(json.dumps(json.loads(s), indent=4))
+	else:
+		print(s)
+
+#===========================================================================
+# Main program starts here
+#===========================================================================
+
+#----------------------------------------
+# Command-line arguments
+#----------------------------------------
+
+parser= ArgumentParser()
+parser.add_argument('-c', '--config', help='Use configuration file CONFIG',
+	nargs=1)	
+
+# Create subcommands
+
+subparsers= parser.add_subparsers()
+
+# Bridge management 
+#--------------------
+
+# bridge-search
+
+parser_search= subparsers.add_parser('bridge-search',
+	help='Search for a Philips Hue bridge on local networks')
+parser_search.add_argument('-S', '--search-time', type=int,
+	help='The time to spend searching for Hue Bridges in seconds')
+parser_search.set_defaults(func=do_bridge_search)
+
+# bridge-add
+
+parser_bridge_add= subparsers.add_parser('bridge-add',
+	help='Add a bridge definition')
+parser_bridge_add.add_argument('-b', '--button-pressed', action='store_true',
+	help='The link button on the bridge has been pressed.')
+parser_bridge_add.add_argument('-n', '--name', nargs='?',
+	help='A friendly name for the bridge')
+parser_bridge_add.add_argument('-u', '--user-id', nargs=1,
+	help='The user id for the target bridge. If ommitted, a new user will be registered on the bridge.')
+parser_bridge_add.add_argument('-s', '--serial-number', nargs='?',
+	help='The bridge serial number. Required if the bridge is not online.')
+parser_bridge_add.add_argument('address', nargs=1, 
+	help='The IP address of the bridge to add')
+parser_bridge_add.set_defaults(func=do_bridge_add)
+
+# Group management
+#--------------------
+
+# group
+
+parser_group= subparsers.add_parser('group',
+	help='List group definitions')
+parser_group.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_group.add_argument('-r', '--raw', action='store_true',
+	help='Print raw response')
+parser_group.add_argument('-R', '--pretty', action='store_true',
+	help='Pretty-print raw response')
+parser_group.add_argument('id', nargs='*', help='Group IDs')
+parser_group.set_defaults(func=do_group)
+
+# Light management
+#--------------------
+
+# light
+
+parser_light= subparsers.add_parser('light',
+	help='List light definitions')
+parser_light.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_light.add_argument('-r', '--raw', action='store_true',
+	help='Print raw response')
+parser_light.add_argument('-R', '--pretty', action='store_true',
+	help='Pretty-print raw response')
+parser_light.add_argument('id', nargs='*', help='Light IDs')
+parser_light.set_defaults(func=do_light)
+
+# Rule management
+#--------------------
+
+# rule
+
+parser_rule= subparsers.add_parser('rule',
+	help='List rule definitions')
+parser_rule.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_rule.add_argument('-r', '--raw', action='store_true',
+	help='Print raw response')
+parser_rule.add_argument('-R', '--pretty', action='store_true',
+	help='Pretty-print raw response')
+parser_rule.add_argument('id', nargs='*', help='Scene IDs')
+parser_rule.set_defaults(func=do_rule)
+
+# Scene management
+#--------------------
+
+# scene
+
+parser_scene= subparsers.add_parser('scene',
+	help='List scene definitions')
+parser_scene.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_scene.add_argument('-r', '--raw', action='store_true',
+	help='Print raw response')
+parser_scene.add_argument('-R', '--pretty', action='store_true',
+	help='Pretty-print raw response')
+parser_scene.add_argument('-x', '--no-light-states', action='store_true',
+	help="Don't display light states")
+parser_scene.add_argument('-S', '--summary', action='store_true',
+	help='Only print a brief scene summary')
+parser_scene.add_argument('-s', '--sort', choices=['name','id','lastupdated'],
+	help='Sort list by field')
+parser_scene.add_argument('id', nargs='*', help='Scene IDs')
+parser_scene.set_defaults(func=do_scene)
+
+# scene-play
+
+parser_scene_play= subparsers.add_parser('scene-play',
+	help='Play a scene')
+parser_scene_play.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_scene_play.add_argument('id', nargs='+', help='Scene IDs')
+parser_scene_play.set_defaults(func=do_scene_play)
+
+# scene-delete
+
+parser_scene_del= subparsers.add_parser('scene-delete',
+	help='Delete a scene')
+parser_scene_del.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_scene_del.add_argument('id', nargs='+', help='Scene IDs')
+parser_scene_del.set_defaults(func=do_scene_del)
+
+# Schedule management
+#--------------------
+
+# schedule
+
+parser_sched= subparsers.add_parser('schedule',
+	help='List schedule definitions')
+parser_sched.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_sched.add_argument('-r', '--raw', action='store_true',
+	help='Print raw response')
+parser_sched.add_argument('-R', '--pretty', action='store_true',
+	help='Pretty-print raw response')
+parser_sched.add_argument('id', nargs='*', help='Schedule IDs')
+parser_sched.set_defaults(func=do_schedule)
+
+# Sensor management
+#--------------------
+
+parser_sensor= subparsers.add_parser('sensor',
+	help='List sensor definitions')
+parser_sensor.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_sensor.add_argument('-r', '--raw', action='store_true',
+	help='Print raw response')
+parser_sensor.add_argument('-R', '--pretty', action='store_true',
+	help='Pretty-print raw response')
+parser_sensor.add_argument('id', nargs='*', help='Sensor IDs')
+parser_sensor.set_defaults(func=do_sensor)
+
+# Bridge configuration
+#--------------------
+
+parser_config_get= subparsers.add_parser('config-get',
+	help='Get bridge configuration')
+parser_config_get.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_config_get.add_argument('-a', '--all', action='store_true',
+	help='Dump the full datastore (implies --raw).')
+parser_config_get.add_argument('-r', '--raw', action='store_true',
+	help='Print raw response')
+parser_config_get.add_argument('-R', '--pretty', action='store_true',
+	help='Pretty-print raw response')
+parser_config_get.set_defaults(func=do_config_get)
+
+# Bridge whitelist management
+#--------------------
+
+parser_userlist_get= subparsers.add_parser('user-get',
+	help='Get authorized userlist')
+parser_userlist_get.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_userlist_get.set_defaults(func=do_users_get)
+
+#----------------------------------------
+# Parse and go
+#----------------------------------------
+
+args= parser.parse_args()
+
+if 'func' in args:
+	args.func(args)
+
+
