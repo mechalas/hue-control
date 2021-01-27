@@ -409,7 +409,7 @@ def rgb_to_hex(rgb):
 
 def hsb_to_rgb(*args):
 	# Use hsv instead of hsb to avoid confusion with rgb
-	h= s= b= None
+	h= s= v= None
 
 	if len(args) == 1:
 		arg0= args[0]
