@@ -12,6 +12,7 @@ from huectl.sensor import HueSensor
 from huectl.schedule import HueSchedule
 from huectl.time import HueDateTime
 from huectl.version import HueApiVersion
+from huectl.rule import HueRule
 
 class HueBridgeConfiguration:
 	def __init__(self, data):
@@ -314,12 +315,24 @@ class HueBridge:
 	# Rules
 	#--------------------
 
+	def get_rule(self, ruleid, raw=False):
+		data= self.call(f'rules/{ruleid}')
+		if raw:
+			return data
+
+		return HueRule(ruleid=ruleid, bridge=self, obj=data)
+
 	def get_all_rules(self, raw=False):
 		data= self.call('rules', raw=raw)
 		if raw:
 			return data
 
-		raise NotImplementedError
+		rules= dict()
+		for ruleid, ruledata in data.items():
+			rule= HueRule(ruleid=ruleid, bridge=self, obj=ruledata)
+			rules[ruleid]= rule
+
+		return rules
 
 	# Schedules
 	#--------------------
