@@ -226,6 +226,32 @@ def do_group(args):
 # Lights
 #----------------------------------------------------------------------------
 
+def do_light_power(args):
+	hue= init_hue(args)
+
+	lights= dict()
+	kwargs= dict()
+
+	if len(args.id):
+		for lightid in args.id:
+			light= hue.get_light(lightid)
+			lights[lightid]= light
+	else:
+		lights= hue.get_all_lights()
+
+	if args.transition_time is not None:
+		kwargs['ms']= args.transition_time
+
+	for light in lights.values():
+		if args.off:
+			light.power_off()
+		else:
+			light.power_on()
+		
+		# Need to print more/better info here
+		print(light.name)
+		light.apply_changes(**kwargs)
+
 def do_light(args):
 	hue= init_hue(args)
 	
@@ -455,6 +481,36 @@ def do_sensor(args):
 		print(sensor)
 
 #----------------------------------------------------------------------------
+# Resourcelinks
+#----------------------------------------------------------------------------
+
+def do_rlinks_get(args):
+	hue= init_hue(args)
+
+	rlinks= dict()
+
+	if not len(args.id):
+		if args.raw or args.pretty:
+			raw_print(args, hue.get_all_resourcelinks(raw=True))
+			return
+
+		rlinks= hue.get_all_rlinks()
+
+	else:
+		for rlinkid in args.id:
+			if args.raw or args.pretty:
+				raw_print(args, hue.get_resourcelink(rlinkid, raw=True))
+			else:
+				rlink= hue.get_resourcelink(rlinkid)
+				rlinks[rlinkid]= rlink
+
+		if args.raw:
+			return
+
+	for rlink in rlinks.values():
+		print(rlink)
+
+#----------------------------------------------------------------------------
 # Bridge Configuration
 #----------------------------------------------------------------------------
 
@@ -631,6 +687,19 @@ parser_light.add_argument('-R', '--pretty', action='store_true',
 parser_light.add_argument('id', nargs='*', help='Light IDs')
 parser_light.set_defaults(func=do_light)
 
+# light on/off
+
+parser_light_pwr= subparsers.add_parser('light-power',
+	help='Turn lights on (default) or off')
+parser_light_pwr.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_light_pwr.add_argument('-t', '--transition-time', type=int,
+	help='Set transition time in 100ms (e.g. 5=500ms)')
+parser_light_pwr.add_argument('-X', '--off', action='store_true',
+	help='Turn lights off')
+parser_light_pwr.add_argument('id', nargs='*', help='Light IDs')
+parser_light_pwr.set_defaults(func=do_light_power)
+
 # Rule management
 #--------------------
 
@@ -742,6 +811,22 @@ parser_userlist_get= subparsers.add_parser('user-get',
 parser_userlist_get.add_argument('-b', '--bridge',
 	help='Bridge to use. Can specify a serial number, friendly name, or address')
 parser_userlist_get.set_defaults(func=do_users_get)
+
+# Resourcelinks
+#----------------------------------------
+
+parser_rlink_get= subparsers.add_parser('rlinks',
+	help='Get resourcelinks')
+parser_rlink_get.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_rlink_get.add_argument('-r', '--raw', action='store_true',
+	help='Print raw response')
+parser_rlink_get.add_argument('-R', '--pretty', action='store_true',
+	help='Pretty-print raw response')
+parser_rlink_get.add_argument('id', nargs='*', help='Resourcelink IDs')
+parser_rlink_get.set_defaults(func=do_rlinks_get)
+
+
 
 #----------------------------------------
 # Parse and go
