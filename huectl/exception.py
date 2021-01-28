@@ -14,6 +14,10 @@ class InvalidColorSpec(Exception):
 	def __init__(self, colorspec):
 		msg = "Invalid color spec "+str(colorspec)
 
+class InvalidOperation(Exception):
+	def __init__(self, obj, action):
+		msg = f"Invalid operation {action} on {obj}"
+
 class BridgeDefined(Exception):
 	def __init__(self, name=None, serial=None):
 		if name is not None:
