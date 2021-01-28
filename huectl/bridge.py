@@ -407,6 +407,23 @@ class HueBridge:
 	def get_datastore(self):
 		return self.call(None, raw=True)
 
+	# Resourcelinks
+	#--------------------
+
+	def get_all_resourcelinks(self, raw=False):
+		data= self.call('resourcelinks', raw=raw)
+		if raw:
+			return data
+
+		raise NotImplemented
+
+	def get_resourcelink(self, reslinkid, raw=False):
+		data= self.call(f'resourcelinks/{reslinkid}', raw=raw)
+		if raw:
+			return data
+
+		raise NotImplemented
+
 	# Raw HTTP calls
 	#--------------------
 
