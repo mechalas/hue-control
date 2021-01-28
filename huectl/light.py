@@ -1,4 +1,4 @@
-import huectl.exception
+from huectl.exception import InvalidOperation
 from huectl.color import HueColorxyY, HueColorHSB, HueColorPointxy, HueColorPointHS, HueColorGamut, HueColorTemp
 import json
 
@@ -17,7 +17,7 @@ class HueColorMode:
 	CT= 'ct'
 	# A dummy mode that doesn't exist but we need something to separate
 	# white lights from the Hue Outlet.
-	Light= '__brightness_only__'
+	Brightness= '__brightness_only__'
 
 #============================================================================
 # Defines a light's capabilities.
@@ -61,7 +61,7 @@ class HueLightCapabilities:
 		# It's a bulb (and not, say, an outlet switch) and can 
 		# emit light.
 		if 'maxlumen' in ctl:
-			self.colormodes.add(HueColorMode.Light)
+			self.colormodes.add(HueColorMode.Brightness)
 			self.maxlumen= ctl['maxlumen']
 			self.mindimlevel= ctl['mindimlevel']
 
@@ -94,7 +94,7 @@ class HueLightPreset(HueState):
 		if not isinstance(obj, dict):
 			raise TypeError
 
-		self.colormode= HueColorMode.Light
+		self.colormode= HueColorMode.Brightness
 
 		if 'on' in obj:
 			self.on= obj['on']
@@ -150,6 +150,7 @@ class HueLightState(HueState):
 			raise TypeError
 
 		self.on= obj['on']
+
 		if 'bri' in obj:
 			self.bri= obj['bri']
 
@@ -196,15 +197,82 @@ class HueLightState(HueState):
 		return f'<HueLightState> {onoff}'
 
 
-class HueLightStateChange(HueLightState):
-	def __init__(self):
-		super().__init__()
-		self.transitiontime= None
-		self.bri_inc= None
-		self.sat_inc= None
-		self.hue_inc= None
-		self.ct_inc= None
-		self.xy_inc= None
+#----------------------------------------------------------------------------
+# HueLightStateChange: A light state change requested by the user
+# 
+# This object is auto-created when the user invokes methods on the parent
+# light object to change its state. It is not meant to be created directly.
+#----------------------------------------------------------------------------
+
+class HueLightStateChange:
+	# Multiple color mode changes can be specified. The bridge will
+	# change all of them, but the final color mode of the light is
+	# set based on the bridge's internal priority (xy > ct > hs)
+
+	def __init__(self, light):
+		self.light= light
+
+		self.change= dict()
+
+	def set_transition_time(self, ms):
+		if ms < 0 or ms > 65535:
+			raise ValueError(f'Transition time {ms} out of range')
+
+		self.change['transitiontime']= round(ms)
+
+	def set_power(self, state):
+		self.change['on']= state
+		
+	def set_brightness(self, bri):
+		if bri < 1 or bri > 254:
+			raise ValueError(f'Brightness {bri} out of range')
+
+		self.change['bri']= bri
+		if 'bri_inc' in self.change:
+			del self.change['bri_inc']
+
+	def inc_brightness(self, bri):
+		if bri < -254 or bri > 254:
+			raise ValueError(f'Brightness delta {bri} out of range')
+
+		self.change['bri_inc']= bri
+		if 'bri' in self.change:
+			del self.change['bri']
+
+	def set_ct(self, ct):
+		if ct < 153 or ct > 500:
+			raise ValueError(f'Mired color temperature {ct} out of range')
+
+		self.change['ct']= ct
+		if 'ct_inc' in self.change:
+			del self.change['ct_inc']
+
+	def inc_ct(self, ct):
+		if ct < -65534 or ct > 65534:
+			raise ValueError(f'Mired color temperature delta {ct} out of range')
+
+		self.change['ct_inc']= ct
+		if 'ct' in self.change:
+			del self.change['ct']
+
+	def set_hue(self, hue):
+		if hue < 0 or hue > 65535:
+			raise ValueError(f'Hue {hue} out of range')
+
+		self.change['hue']= hue
+		if 'hue_inc' in self.change:
+			del self.change['hue_inc']
+
+	def inc_hue(self, hue):
+		if hue < -65534 or hue > 65534:
+			raise ValueError(f'Hue {hue} out of range')
+
+		self.change['hue_inc']= hue
+		if 'hue' in self.change:
+			del self.change['hue']
+
+	def data(self):
+		return self.change
 
 #----------------------------------------------------------------------------
 # A Hue light
@@ -235,6 +303,7 @@ class HueLight:
 		self.capabilities= dict()
 		self.config= dict()
 		self.lightstate= None
+		self.statechange= None
 
 		if isinstance(obj, str):
 			data= json.loads(obj)
@@ -267,7 +336,7 @@ class HueLight:
 		self.lightstate= HueLightState(data['state'])
 		
 	def islight(self):
-		if HueColorMode.Light in self.capabilities.colormodes:
+		if HueColorMode.Brightness in self.capabilities.colormodes:
 			return True
 
 		return False
@@ -290,4 +359,138 @@ class HueLight:
 	def gamut(self):
 		return self.capabilities.colorgamut()
 
+	def _init_state_change(self):
+		if self.statechange is None:
+			self.statechange= HueLightStateChange(self)
+
+	# Reset pending state changes
+
+	def reset_state(self):
+		self.statechange= None
+
+	# Apply any outstanding changes and set an optional 
+	# transition time.
+
+	def apply_changes(self, ms=None):
+		if self.statechange is None:
+			return
+
+		if ms is not None:
+			self.statechange.set_transition_time(ms)
+
+		#print(self.statechange.data())
+		return self.bridge.set_light_state(self.id, self.statechange.data())
+
+	# On/Off
+	#----------------------------------------
+
+	def power_off(self):
+		return self.power_on(state=False)
+
+	def power_on(self, state=True):
+		self._init_state_change()
+		self.statechange.set_power(state)
+
+	# Brightness
+	#----------------------------------------
+
+	# Set brightness level
+
+	def set_brightness(self, bri):
+		if not self.islight():
+			raise InvalidOperation('brightness', f'Light {self.id}')
+
+		self._init_state_change()
+		self.statechange.set_brightness(round(bri))
+
+	# Increment/decrement brightness
+
+	def inc_brightness(self, bri):
+		if not self.islight():
+			raise InvalidOperation('brightness', f'Light {self.id}')
+
+		self._init_state_change()
+		self.statechange.inc_brightness(round(bri))
+
+	# Color temperature
+	#----------------------------------------
+
+	# Set color temperature (in kelvin)
+
+	def set_cct(self, kelvin):
+		if not self.hascolortemp():
+			raise InvalidOperation('color temperature', f'Light {self.id}')
+
+		self._init_state_change()
+		self.statechange.set_ct(round(color.kelvin_to_mired(kelvin)))
+		
+	# Set color temperature (in mired)
+
+	def set_ct(self, mired):
+		if not self.hascolortemp():
+			raise InvalidOperation('color temperature', f'Light {self.id}')
+
+		self._init_state_change()
+		self.statechange.set_ct(round(mired))
+		
+	# Increment/decrement color temperature (in kelvin)
+
+	def inc_cct(self, kelvin):
+		if not self.hascolortemp():
+			raise InvalidOperation('color temperature', f'Light {self.id}')
+
+		self._init_state_change()
+
+		if kelvin == 0:
+			self.statechange.inc_ct(0)
+
+		self.statechange.inc_ct(round(color.kelvin_to_mired(kelvin)))
+
+	# Increment/decrement color temperature (in mired)
+
+	def inc_ct(self, mired):
+		if not self.hascolortemp():
+			raise InvalidOperation('color temperature', f'Light {self.id}')
+
+		self._init_state_change()
+		self.statechange.inc_ct(round(mired))
+
+
+	# Hue (HSB mode)
+	#----------------------------------------
+
+	# Set hue value
+
+	def set_hue(self, h):
+		if not self.hascolor():
+			raise InvalidOperation('hue', f'Light {self.id}')
+
+		self._init_state_change()
+		self.statechange.set_hue(round(h))
+
+	def inc_hue(self, h):
+		if not self.hascolor():
+			raise InvalidOperation('hue', f'Light {self.id}')
+
+		self._init_state_change()
+		self.statechange.inc_hue(round(h))
+
+	# Sat (HSB mode)
+	#----------------------------------------
+
+	# Set sat value
+
+	def set_sat(self, sat):
+		if not self.hascolor():
+			raise InvalidOperation('sat', f'Light {self.id}')
+
+		self._init_state_change()
+		self.statechange.set_sat(round(sat))
+
+	def inc_sat(self, sat):
+		if not self.hascolor():
+			raise InvalidOperation('sat', f'Light {self.id}')
+
+		self._init_state_change()
+		self.statechange.inc_sat(round(sat))
 
