@@ -415,14 +415,14 @@ class HueBridge:
 		if raw:
 			return data
 
-		raise NotImplemented
+		raise NotImplementedError
 
 	def get_resourcelink(self, reslinkid, raw=False):
 		data= self.call(f'resourcelinks/{reslinkid}', raw=raw)
 		if raw:
 			return data
 
-		raise NotImplemented
+		raise NotImplementedError
 
 	# Raw HTTP calls
 	#--------------------
