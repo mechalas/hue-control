@@ -1,5 +1,5 @@
 from huectl.exception import InvalidOperation
-from huectl.color import HueColorxyY, HueColorHSB, HueColorPointxy, HueColorPointHS, HueColorGamut, HueColorTemp
+from huectl.color import HueColorxyY, HueColorHSB, HueColorPointxy, HueColorPointHS, HueColorGamut, HueColorTemp, kelvin_to_mired
 import json
 
 class HueAlertEffect:
@@ -253,6 +253,15 @@ class HueLightStateChange:
 		if 'bri' in self.change:
 			del self.change['bri']
 
+	def set_cct(self, cct):
+		return self.set_ct(round(kelvin_to_mired(cct)))
+
+	def inc_cct(self, cct):
+		if cct == 0:
+			return self.inc_ct(0)
+
+		return self.inc_ct(round(kelvin_to_mired(cct)))
+
 	def set_ct(self, ct):
 		if ct < 153 or ct > 500:
 			raise ValueError(f'Mired color temperature {ct} out of range')
@@ -480,7 +489,7 @@ class HueLight:
 			raise InvalidOperation('color temperature', f'Light {self.id}')
 
 		self._init_state_change()
-		self.statechange.set_ct(round(color.kelvin_to_mired(kelvin)))
+		self.statechange.set_cct(round(kelvin))
 		
 	# Set color temperature (in mired)
 
@@ -498,11 +507,7 @@ class HueLight:
 			raise InvalidOperation('color temperature', f'Light {self.id}')
 
 		self._init_state_change()
-
-		if kelvin == 0:
-			self.statechange.inc_ct(0)
-
-		self.statechange.inc_ct(round(color.kelvin_to_mired(kelvin)))
+		self.statechange.inc_cct(round(kelvin))
 
 	# Increment/decrement color temperature (in mired)
 
