@@ -3,6 +3,7 @@
 from huectl.bridge import HueBridge, HueBridgeSearch
 from huectl.exception import BridgeDefined
 from huectl.group import HueGroup
+from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange
 from argparse import ArgumentParser
 import json
 import asyncio
@@ -226,6 +227,90 @@ def do_group(args):
 # Lights
 #----------------------------------------------------------------------------
 
+def do_light_set(args):
+	hue= init_hue(args)
+
+	lights= dict()
+	kwargs= dict()
+
+	if len(args.id):
+		for lightid in args.id:
+			light= hue.get_light(lightid)
+			lights[lightid]= light
+	elif args.all:
+		lights= hue.get_all_lights()
+	else:
+		return
+
+	if args.transition_time is not None:
+		kwargs['ms']= args.transition_time
+
+	# Create light state change object
+
+	schange= HueLightStateChange()
+
+	if args.brightness is not None:
+		if _isinc(args.brightness):
+			schange.inc_brightness(int(args.brightness))
+		else:
+			schange.set_brightness(int(args.brightness))
+
+	if args.hue is not None:
+		if _isinc(args.hue):
+			schange.inc_hue(float(args.hue))
+		else:
+			schange.set_hue(float(args.hue))
+
+	if args.saturation is not None:
+		if _isinc(args.saturation):
+			schange.inc_sat(int(args.saturation))
+		else:
+			schange.set_sat(int(args.saturation))
+
+	if args.xy is not None:
+		xy_pair= args.xy.split(',')
+		if len(xy_pair) != 2:
+			raise ValueError('x,y pair required')
+
+		x, y= xy_pair
+
+		if _isinc(x) or _isinc(y):
+			schange.inc_xy((float(x),float(y)))
+		else:
+			schange.set_xy((float(x),float(y)))
+
+	if args.color_temperature is not None:
+		if _isinc(args.color_temperature):
+			schange.inc_cct(int(args.color_temperature))
+		else:
+			schange.set_cct(int(args.color_temperature))
+
+	if args.alert:
+		schange.set_alert(args.alert)
+	
+	if args.dynamic_effect:
+		schange.set_dynamic_effect(args.dynamic_effect)
+
+	if args.transition_time is not None:
+		schange.set_transition_time(args.transition_time)
+
+	for light in lights.values():
+		print(light.name)
+		light.apply_changes(schange)
+
+# Does the value start with "+" or "-"?
+
+def _isinc(val):
+	if val == 0:
+		return False
+
+	if val.startswith('+'):
+		return True
+	elif val.startswith('-'):
+		return True
+
+	return False
+
 def do_light_power(args):
 	hue= init_hue(args)
 
@@ -236,8 +321,10 @@ def do_light_power(args):
 		for lightid in args.id:
 			light= hue.get_light(lightid)
 			lights[lightid]= light
-	else:
+	elif args.all:
 		lights= hue.get_all_lights()
+	else:
+		return
 
 	if args.transition_time is not None:
 		kwargs['ms']= args.transition_time
@@ -252,7 +339,7 @@ def do_light_power(args):
 		
 		# Need to print more/better info here
 		print(light.name)
-		light.apply_changes(**kwargs)
+		light.apply_pending_changes(**kwargs)
 
 def do_light(args):
 	hue= init_hue(args)
@@ -676,7 +763,7 @@ parser_group.set_defaults(func=do_group)
 # Light management
 #--------------------
 
-# light
+# light listing
 
 parser_light= subparsers.add_parser('light',
 	help='List light definitions')
@@ -693,17 +780,53 @@ parser_light.set_defaults(func=do_light)
 
 parser_light_pwr= subparsers.add_parser('light-power',
 	help='Turn lights on (default) or off')
+parser_light_pwr.add_argument('-a', '--all',
+	help='Control all lights on the bridge.')
 parser_light_pwr.add_argument('-b', '--bridge',
 	help='Bridge to use. Can specify a serial number, friendly name, or address')
 parser_light_pwr.add_argument('-t', '--transition-time', type=int,
 	help='Set transition time in 100ms (e.g. 5=500ms)')
 group_ex= parser_light_pwr.add_mutually_exclusive_group()
 group_ex.add_argument('-O', '--on', nargs='?', type=int, 
-	help='Turn lights on to the previous brightness level, or an optional brightness level from 1 to 255. This option (without an argument) is the default.')
+	help='Turn lights on to the previous brightness level, or an optional brightness level. This option (without an argument) is the default.')
 group_ex.add_argument('-X', '--off', action='store_true',
 	help='Turn lights off')
 parser_light_pwr.add_argument('id', nargs='*', help='Light IDs')
 parser_light_pwr.set_defaults(func=do_light_power)
+
+# set light attrs
+
+parser_light_set= subparsers.add_parser('light-set',
+	help='Set light attributes')
+parser_light_set.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_light_set.add_argument('-a', '--all', action='store_true',
+	help='Set all lights on the bridge')
+
+parser_light_set.add_argument('-c', '--color-temperature', type=str,
+	help='Set a light color temperature in Kelvin, or specify a +/- increment.')
+parser_light_set.add_argument('--xy', type=str,
+	help='Set xy color coordinates as a comma-separated pair, or specify a +/- increment. Cannot be combined with other color modes.')
+parser_light_set.add_argument('-H', '--hue', type=str,
+	help='Set a color hue, or specify a +/- increment. Hue can be fractional. Cannot be combined with other color modes.')
+parser_light_set.add_argument('-S', '--saturation', type=str,
+	help='Set a color hue, or specify a +/- increment. Cannot be combined with other color modes.')
+
+parser_light_set.add_argument('-B', '--brightness', type=str,
+	help='Set a brightness, or specify a +/- increment.')
+
+parser_light_set.add_argument('-A', '--alert', choices=(HueAlertEffect.NoAlert,
+		HueAlertEffect.Select, HueAlertEffect.LSelect),
+	help='Set an alert effect')
+parser_light_set.add_argument('-e', '--dynamic-effect',
+	choices=(HueDynamicEffect.NoEffect, HueDynamicEffect.ColorLoop),
+	help='Set a dynamic effect')
+
+parser_light_set.add_argument('-t', '--transition-time', type=int,
+	help='Set transition time in 100ms (e.g. 5=500ms)')
+
+parser_light_set.add_argument('id', nargs='*', help='Light IDs')
+parser_light_set.set_defaults(func=do_light_set)
 
 # Rule management
 #--------------------
