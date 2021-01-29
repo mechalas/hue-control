@@ -247,6 +247,8 @@ def do_light_power(args):
 			light.power_off()
 		else:
 			light.power_on()
+			if args.on is not None:
+				light.set_brightness(args.on)
 		
 		# Need to print more/better info here
 		print(light.name)
@@ -695,7 +697,10 @@ parser_light_pwr.add_argument('-b', '--bridge',
 	help='Bridge to use. Can specify a serial number, friendly name, or address')
 parser_light_pwr.add_argument('-t', '--transition-time', type=int,
 	help='Set transition time in 100ms (e.g. 5=500ms)')
-parser_light_pwr.add_argument('-X', '--off', action='store_true',
+group_ex= parser_light_pwr.add_mutually_exclusive_group()
+group_ex.add_argument('-O', '--on', nargs='?', type=int, 
+	help='Turn lights on to the previous brightness level, or an optional brightness level from 1 to 255. This option (without an argument) is the default.')
+group_ex.add_argument('-X', '--off', action='store_true',
 	help='Turn lights off')
 parser_light_pwr.add_argument('id', nargs='*', help='Light IDs')
 parser_light_pwr.set_defaults(func=do_light_power)
