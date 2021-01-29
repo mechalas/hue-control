@@ -213,7 +213,11 @@ class HueLightState(HueState):
 # HueLightStateChange: A light state change requested by the user
 # 
 # This object is auto-created when the user invokes methods on the parent
-# light object to change its state. It is not meant to be created directly.
+# light object to change its state.
+#
+# It can also be created directly for applying the same change to multiple
+# lights, though you won't get error-checking on the lights' supported modes
+# (though that is probably fine).
 #----------------------------------------------------------------------------
 
 class HueLightStateChange:
@@ -221,9 +225,7 @@ class HueLightStateChange:
 	# change all of them, but the final color mode of the light is
 	# set based on the bridge's internal priority (xy > ct > hs)
 
-	def __init__(self, light):
-		self.light= light
-
+	def __init__(self):
 		self.change= dict()
 
 	def set_transition_time(self, ms):
@@ -385,7 +387,7 @@ class HueLight:
 
 	def _init_state_change(self):
 		if self.statechange is None:
-			self.statechange= HueLightStateChange(self)
+			self.statechange= HueLightStateChange()
 
 	# Reset pending state changes
 
@@ -395,15 +397,19 @@ class HueLight:
 	# Apply any outstanding changes and set an optional 
 	# transition time.
 
-	def apply_changes(self, ms=None):
+	def apply_pending_changes(self, ms=None):
 		if self.statechange is None:
 			return
 
 		if ms is not None:
 			self.statechange.set_transition_time(ms)
 
-		#print(self.statechange.data())
 		return self.bridge.set_light_state(self.id, self.statechange.data())
+
+	# Apply changes from an external HueLightStateChange object
+
+	def apply_changes(self, obj):
+		return self.bridge.set_light_state(self.id, obj.data())
 
 	# On/Off
 	#----------------------------------------
