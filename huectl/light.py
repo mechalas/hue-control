@@ -11,7 +11,7 @@ class HueAlertEffect:
 
 	@staticmethod
 	def supported(alert):
-		return alert in _supported_alerts
+		return alert in HueAlertEffect._supported_alerts
 
 class HueDynamicEffect:
 	NoEffect= "none"
@@ -21,7 +21,7 @@ class HueDynamicEffect:
 
 	@staticmethod
 	def supported(effect):
-		return effect in _supported_effects
+		return effect in HueDynamicEffect._supported_effects
 
 class HueColorMode:
 	HSB= 'hsb'
@@ -336,6 +336,9 @@ class HueLightStateChange:
 
 	def data(self):
 		return self.change
+
+	def __str__(self):
+		return json.dumps(self.change)
 
 #----------------------------------------------------------------------------
 # A Hue light
