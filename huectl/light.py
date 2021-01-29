@@ -275,9 +275,6 @@ class HueLightStateChange:
 		if len(xy) != 2:
 			raise ValueError(f'xy must be coordinate pair')
 
-		x= float(xy[0])
-		y= float(xy[1])
-
 		if x < 0 or x > 1:
 			raise ValueError(f'x coordinate must be between 0 and 1')
 
@@ -291,9 +288,6 @@ class HueLightStateChange:
 			raise TypeError(f'xy must be tuple or list')
 		if len(xy) != 2:
 			raise ValueError(f'xy must be increment pair')
-
-		x= float(xy[0])
-		y= float(xy[1])
 
 		if x < -0.5 or x > 0.5:
 			raise ValueError(f'x increment must be between -0.5 and 0.5')
