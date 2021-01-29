@@ -284,6 +284,8 @@ class HueLightStateChange:
 		if len(xy) != 2:
 			raise ValueError(f'xy must be coordinate pair')
 
+		x,y = xy
+
 		if x < 0 or x > 1:
 			raise ValueError(f'x coordinate must be between 0 and 1')
 
@@ -298,6 +300,8 @@ class HueLightStateChange:
 		if len(xy) != 2:
 			raise ValueError(f'xy must be increment pair')
 
+		x,y = xy
+
 		if x < -0.5 or x > 0.5:
 			raise ValueError(f'x increment must be between -0.5 and 0.5')
 
@@ -307,20 +311,36 @@ class HueLightStateChange:
 		self.change['xy_inc']= [ round(x,4), round(y,4) ]
 
 	def set_hue(self, hue):
-		if hue < 0 or hue > 65535:
+		if hue < 0 or hue > 360:
 			raise ValueError(f'Hue {hue} out of range')
 
-		self.change['hue']= hue
+		self.change['hue']= round(hue*65535/360)
 		if 'hue_inc' in self.change:
 			del self.change['hue_inc']
 
 	def inc_hue(self, hue):
-		if hue < -65534 or hue > 65534:
+		if hue < -360 or hue > 360:
 			raise ValueError(f'Hue {hue} out of range')
 
-		self.change['hue_inc']= hue
+		self.change['hue_inc']= round(hue*65534/360)
 		if 'hue' in self.change:
 			del self.change['hue']
+
+	def set_sat(self, sat):
+		if sat < 0 or sat > 254:
+			raise ValueError(f'Saturation {sat} out of range')
+
+		self.change['sat']= sat
+		if 'sat_inc' in self.change:
+			del self.change['sat_inc']
+
+	def inc_sat(self, sat):
+		if sat < -254 or sat > 254:
+			raise ValueError(f'Saturation {sat} out of range')
+
+		self.change['sat_inc']= sat
+		if 'sat' in self.change:
+			del self.change['sat']
 
 	def set_alert(self, alert):
 		if not HueAlertEffect.supported(alert):
