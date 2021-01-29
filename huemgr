@@ -583,7 +583,7 @@ def do_rlinks_get(args):
 			raw_print(args, hue.get_all_resourcelinks(raw=True))
 			return
 
-		rlinks= hue.get_all_rlinks()
+		rlinks= hue.get_all_resourcelinks()
 
 	else:
 		for rlinkid in args.id:
