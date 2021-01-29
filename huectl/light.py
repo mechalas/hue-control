@@ -7,9 +7,21 @@ class HueAlertEffect:
 	Select= "select"
 	LSelect= "lselect"
 
+	_supported_alerts= (NoAlert, Select, LSelect)
+
+	@staticmethod
+	def supported(alert):
+		return alert in _supported_alerts
+
 class HueDynamicEffect:
 	NoEffect= "none"
 	ColorLoop= "colorloop"
+
+	_supported_effects= (NoEffect, ColorLoop)
+
+	@staticmethod
+	def supported(effect):
+		return effect in _supported_effects
 
 class HueColorMode:
 	HSB= 'hsb'
@@ -271,6 +283,18 @@ class HueLightStateChange:
 		if 'hue' in self.change:
 			del self.change['hue']
 
+	def set_alert(self, alert):
+		if not HueAlertEffect.supported(alert):
+			raise ValueError(f'Unknown alert mode {alert}')
+
+		self.change['alert']= alert
+
+	def set_dynamic_effect(self, effect):
+		if not HueDynamicEffect.supported(effect):
+			raise ValueError(f'Unknown dynamic effect {effect}')
+
+		self.change['effect']= effect
+
 	def data(self):
 		return self.change
 
@@ -493,4 +517,24 @@ class HueLight:
 
 		self._init_state_change()
 		self.statechange.inc_sat(round(sat))
+
+	# Alert
+	#----------------------------------------
+
+	def set_alert(self, alert):
+		if not self.islight():
+			raise InvalidOperation('alert', f'Light {self.id}')
+
+		self._init_state_change()
+		self.statechange.set_alert(alert)
+
+	# Dynamic effects
+	#----------------------------------------
+
+	def set_alert(self, effect):
+		if not self.hascolor():
+			raise InvalidOperation('effect', f'Light {self.id}')
+
+		self._init_state_change()
+		self.statechange.set_effect(effect)
 
