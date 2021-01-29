@@ -269,6 +269,40 @@ class HueLightStateChange:
 		if 'ct' in self.change:
 			del self.change['ct']
 
+	def set_xy(self, xy):
+		if not (isinstance(xy, list) or isinstance(xy, tuple)):
+			raise TypeError(f'xy must be tuple or list')
+		if len(xy) != 2:
+			raise ValueError(f'xy must be coordinate pair')
+
+		x= float(xy[0])
+		y= float(xy[1])
+
+		if x < 0 or x > 1:
+			raise ValueError(f'x coordinate must be between 0 and 1')
+
+		if y < 0 or y > 1:
+			raise ValueError(f'y coordinate must be between 0 and 1')
+
+		self.change['xy']= [ round(x,4), round(y,4) ]
+
+	def inc_xy(self, xy):
+		if not (isinstance(xy, list) or isinstance(xy, tuple)):
+			raise TypeError(f'xy must be tuple or list')
+		if len(xy) != 2:
+			raise ValueError(f'xy must be increment pair')
+
+		x= float(xy[0])
+		y= float(xy[1])
+
+		if x < -0.5 or x > 0.5:
+			raise ValueError(f'x increment must be between -0.5 and 0.5')
+
+		if y < -0.5 or y > 0.5:
+			raise ValueError(f'y increment must be between -0.5 and 0.5')
+
+		self.change['xy']= [ round(x,4), round(y,4) ]
+
 	def set_hue(self, hue):
 		if hue < 0 or hue > 65535:
 			raise ValueError(f'Hue {hue} out of range')
