@@ -30,10 +30,13 @@ Both can be installed using pip.
   * Scenes
   * Schedules
   * Sensors
-  * Rules (raw output only)
+  * Rules
+  * Resourcelinks (raw only)
 * Playing and deleting scenes
+* Turning lights on and off
+* Changing light color (and color mode), dynamic effects and alert effects
 
-Output is messy as it uses the __str__ overloads which are currently printing class decorators and other verbosity that is not human-friendly but useful for debugging and dev elopment.
+Output is messy as many objects the __str__ overloads which are currently printing class decorators and other verbosity that is not human-friendly but useful for debugging and development.
 
 ## Bugs and Issue Reports
 
@@ -47,7 +50,5 @@ Yes, it would. But I am not there yet. Right now my priorities are:
 1. Getting the high-level API at least designed.
 1. Cleaning up problems on my own Hue bridges caused by poorly-behaved apps that have abused the API in the past and left me, the user, to deal with it.
 1. Not causing those same problems for someone else.
-
-
 
 
