@@ -301,7 +301,7 @@ class HueLightStateChange:
 		if y < -0.5 or y > 0.5:
 			raise ValueError(f'y increment must be between -0.5 and 0.5')
 
-		self.change['xy']= [ round(x,4), round(y,4) ]
+		self.change['xy_inc']= [ round(x,4), round(y,4) ]
 
 	def set_hue(self, hue):
 		if hue < 0 or hue > 65535:
