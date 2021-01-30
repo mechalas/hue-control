@@ -129,7 +129,7 @@ class HueLightPreset(HueState):
 		elif 'hue' in obj:
 			self.colormode= HueColorMode.HSB
 			self.hs= HueColorPointHS(obj['hue']*360.0/65535.0,
-				obj['sat']/254.0)
+				obj['sat']/255.0)
 
 	def __str__(self):
 		on= 'Off'
@@ -150,6 +150,31 @@ class HueLightPreset(HueState):
 			s+= f' {color}'
 
 		return s
+
+	def data(self):
+		d= dict()
+
+		if self.on is not None:
+			d['on']= self.on
+		
+		if self.effect is not None:
+			d['efsfect']= self.effect
+		if self.transitiontime is not None:
+			d['transitiontime']= self.transitiontime
+
+		if self.bri is not None:
+			d['bri']= self.bri
+
+		if self.hs is not None:
+			d['hue']= round(self.hs.hue,4)
+			d['sat']= round(self.hs.sat,4)
+		elif self.ct is not None:
+			d['ct']= int(self.ct)
+		elif self.xy is not None:
+			d['x']= round(self.xy.x,4)
+			d['y']= round(self.xy.y,4)
+
+		return d
 
 class HueLightState(HueState):
 	def __init__(self, obj):
