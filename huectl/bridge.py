@@ -235,13 +235,17 @@ class HueBridge:
 
 		return lights
 
-	def set_light_attributes(self, lightid, light):
-		attrs= {
-			'name': light['name'][:32]
-		}
+	def set_light_attributes(self, lightid, **kwargs):
+		attrs= dict()
+		if 'name' in kwargs:
+			attrs['name']= kwargs
+
 		rv= self.call(f'lights/{lightid}', method='PUT', data=attrs)
 
-		raise NotImplementedError
+		if len(errors):
+			raise AttrsNotSet(errors)
+
+		return True
 
 	def set_light_state(self, lightid, state):
 		rv= self.call(f'lights/{lightid}/state', method='PUT', data=state)
@@ -261,6 +265,7 @@ class HueBridge:
 			raise AttrsNotSet(errors)
 				
 		return True
+
 
 	# Scenes
 	#--------------------

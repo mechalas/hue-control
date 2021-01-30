@@ -445,6 +445,24 @@ class HueLight:
 	def gamut(self):
 		return self.capabilities.colorgamut()
 
+	def rename(self, name):
+		if name is None:
+			return False
+
+		name= name.strip()
+
+		if not len(name):
+			return False
+
+		if len(name) > 32:
+			raise ValueError(f'Max name length is 32 characters')
+
+		self.bridge.set_light_attributes(name=name)
+
+	#----------------------------------------
+	# Deprecated below
+	#----------------------------------------
+
 	def _init_state_change(self):
 		if self.statechange is None:
 			self.statechange= HueLightStateChange()
