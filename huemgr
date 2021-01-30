@@ -302,7 +302,7 @@ def do_light_set(args):
 
 	for light in lights.values():
 		print(light.name)
-		light.apply_changes(schange)
+		light.change_state(schange)
 
 # Does the value start with "+" or "-"?
 
@@ -332,20 +332,24 @@ def do_light_power(args):
 	else:
 		return
 
+	schange= HueLightStateChange()
+
+	if args.off:
+		state=False
+	else:
+		state=True
+		if args.on is not None:
+			schange.set_brightness(args.on)
+
+	schange.set_power(state)
+
 	if args.transition_time is not None:
-		kwargs['ms']= args.transition_time
+		schange.set_transition_time(args.transition_time)
 
 	for light in lights.values():
-		if args.off:
-			light.power_off()
-		else:
-			light.power_on()
-			if args.on is not None:
-				light.set_brightness(args.on)
-		
 		# Need to print more/better info here
 		print(light.name)
-		light.apply_pending_changes(**kwargs)
+		light.change_state(schange)
 
 def do_light(args):
 	hue= init_hue(args)
