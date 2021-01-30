@@ -5,6 +5,7 @@ from huectl.exception import BridgeDefined
 from huectl.group import HueGroup
 from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange
 from argparse import ArgumentParser
+import sys
 import json
 import asyncio
 import ssdp
@@ -491,6 +492,33 @@ def _scene_preset(scene, lightid):
 
 	return str(preset)
 
+# Use configparser to dump an INI file of the scene def
+
+def do_scene_dump(args):
+	hue= init_hue(args)
+
+	scene= hue.get_scene(args.id)
+
+	sdef= configparser.ConfigParser()
+	sdef['scene']= dict()
+	sdef['scene']['name']= scene.name
+
+	# Do we have lightstates?
+	if scene.has_presets():
+		sdef['scene']['lightstates']= str(True)
+	else:
+		sdef['scene']['lightstates']= str(False)
+
+	for lightid in scene.lights.keys(unresolved=True):
+		secname= 'light '+lightid
+		if scene.has_presets():
+			preset= scene.preset(lightid)
+			sdef[secname]= preset.data()
+		else:
+			sdef[secname]= []
+	
+	sdef.write(sys.stdout)
+
 def do_scene_rename(args):
 	hue= init_hue(args)
 
@@ -921,6 +949,15 @@ parser_scene_del.add_argument('-b', '--bridge',
 	help='Bridge to use. Can specify a serial number, friendly name, or address')
 parser_scene_del.add_argument('id', nargs='+', help='Scene IDs')
 parser_scene_del.set_defaults(func=do_scene_del)
+
+# scene-dump
+
+parser_scene_dump= subparsers.add_parser('scene-dump',
+	help='Dump a scene definition to INI format')
+parser_scene_dump.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_scene_dump.add_argument('id', help='Scene ID')
+parser_scene_dump.set_defaults(func=do_scene_dump)
 
 # Schedule management
 #--------------------
