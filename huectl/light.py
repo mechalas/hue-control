@@ -211,13 +211,6 @@ class HueLightState(HueState):
 
 #----------------------------------------------------------------------------
 # HueLightStateChange: A light state change requested by the user
-# 
-# This object is auto-created when the user invokes methods on the parent
-# light object to change its state.
-#
-# It can also be created directly for applying the same change to multiple
-# lights, though you won't get error-checking on the lights' supported modes
-# (though that is probably fine).
 #----------------------------------------------------------------------------
 
 class HueLightStateChange:
