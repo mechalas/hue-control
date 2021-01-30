@@ -84,8 +84,8 @@ class HueState:
 		self.hs= None
 		self.xy= None
 		self.ct= None
-		self.alert= HueAlertEffect.NoAlert
-		self.effect= HueDynamicEffect.NoEffect
+		self.alert= None
+		self.effect= None
 		self.colormode= None
 
 	def colortemp(self):
@@ -101,7 +101,7 @@ class HueLightPreset(HueState):
 	def __init__(self, obj):
 		super().__init__()
 
-		self.transitiontime= 0
+		self.transitiontime= None
 
 		if not isinstance(obj, dict):
 			raise TypeError
@@ -158,7 +158,7 @@ class HueLightPreset(HueState):
 			d['on']= self.on
 		
 		if self.effect is not None:
-			d['efsfect']= self.effect
+			d['effect']= self.effect
 		if self.transitiontime is not None:
 			d['transitiontime']= self.transitiontime
 
