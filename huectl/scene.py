@@ -18,6 +18,7 @@ class HueScene(HueContainer):
 		self.name= None
 		self.id= sceneid
 		self.transitiontime= 0
+		self._has_lightstates= False
 
 		apiver= self.bridge.api_version()
 
@@ -118,6 +119,7 @@ class HueScene(HueContainer):
 
 		if 'lightstates' in d:
 			lstates= dict()
+			self._has_lightstates= True
 			for lightid, sdata in d['lightstates'].items():
 				lstates[lightid]= HueLightPreset(sdata)
 
@@ -125,6 +127,9 @@ class HueScene(HueContainer):
 
 	def light(self, lightid):
 		return self.lights.item(lightid)
+
+	def has_presets(self):
+		return self._has_lightstates
 
 	def preset(self, lightid):
 		try:
