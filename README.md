@@ -32,9 +32,13 @@ Both can be installed using pip.
   * Sensors
   * Rules
   * Resourcelinks (raw only)
-* Playing and deleting scenes
-* Turning lights on and off
-* Changing light color (and color mode), dynamic effects and alert effects
+* Light functions:
+  * Power on/off 
+  * Change brightness, color (and color mode), dynamic effect, alert effect
+  * Rename
+* Scene functions:
+  * Play
+  * Delete
 
 Output is messy as many objects the __str__ overloads which are currently printing class decorators and other verbosity that is not human-friendly but useful for debugging and development.
 
