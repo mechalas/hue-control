@@ -37,8 +37,9 @@ Both can be installed using pip.
   * Change brightness, color (and color mode), dynamic effect, alert effect
   * Rename
 * Scene functions:
-  * Play
   * Delete
+  * Recall/play
+  * Rename
 
 Output is messy as many objects the __str__ overloads which are currently printing class decorators and other verbosity that is not human-friendly but useful for debugging and development.
 
