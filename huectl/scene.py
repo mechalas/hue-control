@@ -132,3 +132,24 @@ class HueScene(HueContainer):
 		except KeyError:
 			return None
 
+	def rename(self, name):
+		if name is None:
+			return False
+
+		name= name.strip()
+
+		if not len(name):
+			return False
+
+		apiver= self.bridge.api_version()
+
+		if apiver >= '1.4':
+			maxlen= 32
+		else:
+			maxlen= 16
+
+		if len(name) > maxlen:
+			raise ValueError(f'Max nane length is {maxlen} characters')
+
+		self.bridge.modify_scene(self.id, name=name)
+

@@ -328,6 +328,15 @@ class HueBridge:
 
 		raise huectl.exception.BadResponse(str(status[0]))
 
+	def modify_scene(self, sceneid, **kwargs):
+		scene_data= dict()
+		if 'name' in kwargs:
+			scene_data['name']= kwargs['name']
+
+		rv= self.call(f'scenes/{sceneid}', method='PUT', data=scene_data)
+
+		print(rv)
+
 	# Rules
 	#--------------------
 

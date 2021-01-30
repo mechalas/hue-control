@@ -491,6 +491,12 @@ def _scene_preset(scene, lightid):
 
 	return str(preset)
 
+def do_scene_rename(args):
+	hue= init_hue(args)
+
+	scene= hue.get_scene(args.id)
+	scene.rename(args.name)
+
 def do_scene_del(args):
 	hue= init_hue(args)
 
@@ -896,6 +902,16 @@ parser_scene_play.add_argument('-b', '--bridge',
 	help='Bridge to use. Can specify a serial number, friendly name, or address')
 parser_scene_play.add_argument('id', nargs='+', help='Scene IDs')
 parser_scene_play.set_defaults(func=do_scene_play)
+
+# scene-rename
+
+parser_scene_rename= subparsers.add_parser('scene-rename', 
+	help='Rename a scene')
+parser_scene_rename.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_scene_rename.add_argument('id', help='Light ID')
+parser_scene_rename.add_argument('name', help='New scene name')
+parser_scene_rename.set_defaults(func=do_scene_rename)
 
 # scene-delete
 
