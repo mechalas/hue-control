@@ -227,6 +227,12 @@ def do_group(args):
 # Lights
 #----------------------------------------------------------------------------
 
+def do_light_rename(args):
+	hue= init_hue(args)
+
+	light= hue.get_light(args.id)
+	light.rename(args.name)
+
 def do_light_set(args):
 	hue= init_hue(args)
 
@@ -794,7 +800,17 @@ group_ex.add_argument('-X', '--off', action='store_true',
 parser_light_pwr.add_argument('id', nargs='*', help='Light IDs')
 parser_light_pwr.set_defaults(func=do_light_power)
 
-# set light attrs
+# light rename
+
+parser_light_rename= subparsers.add_parser('light-rename', 
+	help='Rename a light')
+parser_light_rename.add_argument('-b', '--bridge',
+	help='Bridge to use. Can specify a serial number, friendly name, or address')
+parser_light_rename.add_argument('id', help='Light ID')
+parser_light_rename.add_argument('name', help='New light name')
+parser_light_rename.set_defaults(func=do_light_rename)
+
+# set light state
 
 parser_light_set= subparsers.add_parser('light-set',
 	help='Set light attributes')
