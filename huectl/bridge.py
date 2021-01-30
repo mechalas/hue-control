@@ -335,7 +335,21 @@ class HueBridge:
 
 		rv= self.call(f'scenes/{sceneid}', method='PUT', data=scene_data)
 
-		print(rv)
+		if not isinstance(rv, list):
+			raise BadResponse(rv)
+
+		if not len(rv):
+			raise BadResponse(rv)
+
+		errors= []
+		for elem in rv:
+			if 'error' in elem:
+				errors.append(elem[error].keys()[0])
+
+		if len(errors):
+			raise AttrsNotSet(errors)
+
+		return True
 
 	# Rules
 	#--------------------
