@@ -238,7 +238,7 @@ class HueBridge:
 	def set_light_attributes(self, lightid, **kwargs):
 		attrs= dict()
 		if 'name' in kwargs:
-			attrs['name']= kwargs
+			attrs['name']= kwargs['name']
 
 		rv= self.call(f'lights/{lightid}', method='PUT', data=attrs)
 
