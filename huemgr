@@ -791,11 +791,28 @@ def do_color(args):
 # Util functions
 #----------------------------------------
 
+# Raw print and pretty-print
+
 def raw_print(args, s):
 	if args.pretty:
 		print(json.dumps(json.loads(s), indent=4))
 	else:
 		print(s)
+
+# Arguments that are common to a lot of commands
+
+def standard_args(parser, *arglist):
+	if 'bridge' in arglist:
+		parser.add_argument('-b', '--bridge',
+			help='Bridge to use. Can specify a serial number, friendly name, or address')
+
+	if 'raw' in arglist:
+		parser.add_argument('-r', '--raw', action='store_true',
+			help='Print raw response')
+	
+	if 'pretty' in arglist:
+		parser.add_argument('-R', '--pretty', action='store_true',
+			help='Pretty-print raw response')
 
 #===========================================================================
 # Main program starts here
@@ -828,7 +845,7 @@ parser_search.set_defaults(func=do_bridge_search)
 
 parser_bridge_add= subparsers.add_parser('bridge-add',
 	help='Add a bridge definition')
-parser_bridge_add.add_argument('-b', '--button-pressed', action='store_true',
+parser_bridge_add.add_argument('-B', '--button-pressed', action='store_true',
 	help='The link button on the bridge has been pressed.')
 parser_bridge_add.add_argument('-n', '--name', nargs='?',
 	help='A friendly name for the bridge')
@@ -847,14 +864,16 @@ parser_bridge_add.set_defaults(func=do_bridge_add)
 
 parser_group= subparsers.add_parser('group',
 	help='List group definitions')
-parser_group.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
-parser_group.add_argument('-r', '--raw', action='store_true',
-	help='Print raw response')
-parser_group.add_argument('-R', '--pretty', action='store_true',
-	help='Pretty-print raw response')
+standard_args(parser_group, 'raw', 'pretty', 'bridge')
 parser_group.add_argument('id', nargs='*', help='Group IDs')
 parser_group.set_defaults(func=do_group)
+
+parser_group_rename= subparsers.add_parser('group-rename',
+	help='Rename a group')
+standard_args(parser_group_rename, 'bridge')
+parser_group_rename.add_argument('id', help='Group ID')
+parser_group_rename.add_argument('name', help='New group name')
+
 
 # Light management
 #--------------------
@@ -863,12 +882,7 @@ parser_group.set_defaults(func=do_group)
 
 parser_light= subparsers.add_parser('light',
 	help='List light definitions')
-parser_light.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
-parser_light.add_argument('-r', '--raw', action='store_true',
-	help='Print raw response')
-parser_light.add_argument('-R', '--pretty', action='store_true',
-	help='Pretty-print raw response')
+standard_args(parser_light, 'raw', 'pretty', 'bridge')
 parser_light.add_argument('id', nargs='*', help='Light IDs')
 parser_light.set_defaults(func=do_light)
 
@@ -876,10 +890,9 @@ parser_light.set_defaults(func=do_light)
 
 parser_light_pwr= subparsers.add_parser('light-power',
 	help='Turn lights on (default) or off')
+standard_args(parser_light_pwr, 'bridge')
 parser_light_pwr.add_argument('-a', '--all',
 	help='Control all lights on the bridge.')
-parser_light_pwr.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
 parser_light_pwr.add_argument('-t', '--transition-time', type=int,
 	help='Set transition time in 100ms (e.g. 5=500ms)')
 group_ex= parser_light_pwr.add_mutually_exclusive_group()
@@ -894,8 +907,7 @@ parser_light_pwr.set_defaults(func=do_light_power)
 
 parser_light_rename= subparsers.add_parser('light-rename', 
 	help='Rename a light')
-parser_light_rename.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
+standard_args(parser_light_rename, 'bridge')
 parser_light_rename.add_argument('id', help='Light ID')
 parser_light_rename.add_argument('name', help='New light name')
 parser_light_rename.set_defaults(func=do_light_rename)
@@ -904,8 +916,7 @@ parser_light_rename.set_defaults(func=do_light_rename)
 
 parser_light_set= subparsers.add_parser('light-set',
 	help='Set light attributes')
-parser_light_set.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
+standard_args(parser_light_set, 'bridge')
 parser_light_set.add_argument('-a', '--all', action='store_true',
 	help='Set all lights on the bridge')
 
@@ -941,12 +952,7 @@ parser_light_set.set_defaults(func=do_light_set)
 
 parser_rule= subparsers.add_parser('rule',
 	help='List rule definitions')
-parser_rule.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
-parser_rule.add_argument('-r', '--raw', action='store_true',
-	help='Print raw response')
-parser_rule.add_argument('-R', '--pretty', action='store_true',
-	help='Pretty-print raw response')
+standard_args(parser_rule, 'raw', 'pretty', 'bridge')
 parser_rule.add_argument('id', nargs='*', help='Scene IDs')
 parser_rule.set_defaults(func=do_rule)
 
@@ -957,12 +963,7 @@ parser_rule.set_defaults(func=do_rule)
 
 parser_scene= subparsers.add_parser('scene',
 	help='List scene definitions')
-parser_scene.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
-parser_scene.add_argument('-r', '--raw', action='store_true',
-	help='Print raw response')
-parser_scene.add_argument('-R', '--pretty', action='store_true',
-	help='Pretty-print raw response')
+standard_args(parser_scene, 'raw', 'pretty', 'bridge')
 parser_scene.add_argument('-i', '--ignore-autogenerated', action='store_true',
 	help="""Filter out the Hue app's auto-generated scenes from the scene list. These include the "standard" Hue app scenes ("""+', '.join(HueAppStandardScenes)+""") that it auto-creates for each room, as well as the "Last on state" scenes used by dimmer switches. This may accidentally filter out scenes created by the user if they use a name that matches one of the standard scenes.""")
 parser_scene.add_argument('-x', '--no-light-states', action='store_true',
@@ -978,8 +979,7 @@ parser_scene.set_defaults(func=do_scene)
 
 parser_scene_play= subparsers.add_parser('scene-play',
 	help='Play a scene')
-parser_scene_play.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
+standard_args(parser_scene_play, 'bridge')
 parser_scene_play.add_argument('id', nargs='+', help='Scene IDs')
 parser_scene_play.set_defaults(func=do_scene_play)
 
@@ -987,8 +987,7 @@ parser_scene_play.set_defaults(func=do_scene_play)
 
 parser_scene_rename= subparsers.add_parser('scene-rename', 
 	help='Rename a scene')
-parser_scene_rename.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
+standard_args(parser_scene_rename, 'bridge')
 parser_scene_rename.add_argument('id', help='Light ID')
 parser_scene_rename.add_argument('name', help='New scene name')
 parser_scene_rename.set_defaults(func=do_scene_rename)
@@ -997,8 +996,7 @@ parser_scene_rename.set_defaults(func=do_scene_rename)
 
 parser_scene_del= subparsers.add_parser('scene-delete',
 	help='Delete a scene')
-parser_scene_del.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
+standard_args(parser_scene_del, 'bridge')
 parser_scene_del.add_argument('id', nargs='+', help='Scene IDs')
 parser_scene_del.set_defaults(func=do_scene_del)
 
@@ -1006,8 +1004,7 @@ parser_scene_del.set_defaults(func=do_scene_del)
 
 parser_scene_dump= subparsers.add_parser('scene-dump',
 	help='Dump a scene definition to INI format')
-parser_scene_dump.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
+standard_args(parser_scene_dump, 'bridge')
 parser_scene_dump.add_argument('id', help='Scene ID')
 parser_scene_dump.set_defaults(func=do_scene_dump)
 
@@ -1018,12 +1015,7 @@ parser_scene_dump.set_defaults(func=do_scene_dump)
 
 parser_sched= subparsers.add_parser('schedule',
 	help='List schedule definitions')
-parser_sched.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
-parser_sched.add_argument('-r', '--raw', action='store_true',
-	help='Print raw response')
-parser_sched.add_argument('-R', '--pretty', action='store_true',
-	help='Pretty-print raw response')
+standard_args(parser_sched, 'raw', 'pretty', 'bridge')
 parser_sched.add_argument('id', nargs='*', help='Schedule IDs')
 parser_sched.set_defaults(func=do_schedule)
 
@@ -1032,12 +1024,7 @@ parser_sched.set_defaults(func=do_schedule)
 
 parser_sensor= subparsers.add_parser('sensor',
 	help='List sensor definitions')
-parser_sensor.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
-parser_sensor.add_argument('-r', '--raw', action='store_true',
-	help='Print raw response')
-parser_sensor.add_argument('-R', '--pretty', action='store_true',
-	help='Pretty-print raw response')
+standard_args(parser_sensor, 'raw', 'pretty', 'bridge')
 parser_sensor.add_argument('id', nargs='*', help='Sensor IDs')
 parser_sensor.set_defaults(func=do_sensor)
 
@@ -1046,14 +1033,9 @@ parser_sensor.set_defaults(func=do_sensor)
 
 parser_config_get= subparsers.add_parser('config-get',
 	help='Get bridge configuration')
-parser_config_get.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
+standard_args(parser_config_get, 'raw', 'pretty', 'bridge')
 parser_config_get.add_argument('-a', '--all', action='store_true',
 	help='Dump the full datastore (implies --raw).')
-parser_config_get.add_argument('-r', '--raw', action='store_true',
-	help='Print raw response')
-parser_config_get.add_argument('-R', '--pretty', action='store_true',
-	help='Pretty-print raw response')
 parser_config_get.set_defaults(func=do_config_get)
 
 # Bridge whitelist management
@@ -1061,8 +1043,7 @@ parser_config_get.set_defaults(func=do_config_get)
 
 parser_userlist_get= subparsers.add_parser('user-get',
 	help='Get authorized userlist')
-parser_userlist_get.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
+standard_args(parser_userlist_get, 'bridge')
 parser_userlist_get.set_defaults(func=do_users_get)
 
 # Resourcelinks
@@ -1070,12 +1051,7 @@ parser_userlist_get.set_defaults(func=do_users_get)
 
 parser_rlink_get= subparsers.add_parser('rlinks',
 	help='Get resourcelinks')
-parser_rlink_get.add_argument('-b', '--bridge',
-	help='Bridge to use. Can specify a serial number, friendly name, or address')
-parser_rlink_get.add_argument('-r', '--raw', action='store_true',
-	help='Print raw response')
-parser_rlink_get.add_argument('-R', '--pretty', action='store_true',
-	help='Pretty-print raw response')
+standard_args(parser_rlink_get, 'raw', 'pretty', 'bridge')
 parser_rlink_get.add_argument('id', nargs='*', help='Resourcelink IDs')
 parser_rlink_get.set_defaults(func=do_rlinks_get)
 
