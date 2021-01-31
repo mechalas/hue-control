@@ -192,6 +192,12 @@ def do_bridge_search(args):
 # Groups
 #----------------------------------------------------------------------------
 
+def do_group_rename(args):
+	hue= init_hue(args)
+
+	group= hue.get_group(args.id)
+	group.rename(args.name)
+
 def do_group(args):
 	hue= init_hue(args)
 
@@ -873,6 +879,7 @@ parser_group_rename= subparsers.add_parser('group-rename',
 standard_args(parser_group_rename, 'bridge')
 parser_group_rename.add_argument('id', help='Group ID')
 parser_group_rename.add_argument('name', help='New group name')
+parser_group_rename.set_defaults(func=do_group_rename)
 
 
 # Light management

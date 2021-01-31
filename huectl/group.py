@@ -1,6 +1,6 @@
 from huectl.color import HueColorPointxy, HueColorPointHS, HueColorTemp
 from huectl.container import HueContainer
-from huectl.light import HueLight, HueLightState
+from huectl.light import HueLight, HueLightState, HueLightStateChange
 from huectl.sensor import HueSensor
 from huectl.version import HueApiVersion
 
@@ -241,3 +241,5 @@ class HueGroup(HueContainer):
 		if self.sensors.unresolved_items() and sensors is not None:
 			self.sensors.resolve_items(sensors)
 
+	def rename(self, name):
+		self.bridge.set_group_attributes(self.id, name=name)

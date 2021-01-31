@@ -146,7 +146,7 @@ class HueBridge:
 		if groupid is None:
 			lstates= scene.lightstates.dict()
 			if not len(lstates):
-				raise InvalidObject('HueScene', sceneid)
+				raise huectl.exception.InvalidObject('HueScene', sceneid)
 
 			for lightid, state in lstates.items():
 				self.set_light_state(lightid, state)
@@ -215,6 +215,34 @@ class HueBridge:
 
 		return groups
 
+	def set_group_attributes(self, groupid, **kwargs):
+		if groupid == '0':
+			raise huectl.exception.InvalidOperation('set_group_attribute', 'group 0')
+
+		attrs= dict()
+
+		for attr in ('name', 'class', 'lights'):
+			if attr in kwargs:
+				attrs[attr]= kwargs[attr]
+
+		rv= self.call(f'groups/{groupid}', method='PUT', data=attrs)
+
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(rv)
+
+		if not len(rv):
+			raise huectl.exception.BadResponse(rv)
+
+		errors= []
+		for elem in rv:
+			if 'error' in elem:
+				errors.append(elem[error].keys()[0])
+
+		if len(errors):
+			raise huectl.exception.AttrsNotSet(errors)
+
+		return True
+
 	# Lights
 	#--------------------
 
@@ -244,10 +272,10 @@ class HueBridge:
 		rv= self.call(f'lights/{lightid}', method='PUT', data=attrs)
 
 		if not isinstance(rv, list):
-			raise BadResponse(rv)
+			raise huectl.exception.BadResponse(rv)
 
 		if not len(rv):
-			raise BadResponse(rv)
+			raise huectl.exception.BadResponse(rv)
 
 		errors= []
 		for elem in rv:
@@ -255,7 +283,7 @@ class HueBridge:
 				errors.append(elem[error].keys()[0])
 
 		if len(errors):
-			raise AttrsNotSet(errors)
+			raise huectl.exception.AttrsNotSet(errors)
 
 		return True
 
@@ -263,10 +291,10 @@ class HueBridge:
 		rv= self.call(f'lights/{lightid}/state', method='PUT', data=state)
 
 		if not isinstance(rv, list):
-			raise BadResponse(rv)
+			raise huectl.exception.BadResponse(rv)
 
 		if not len(rv):
-			raise BadResponse(rv)
+			raise huectl.exception.BadResponse(rv)
 
 		errors= []
 		for elem in rv:
@@ -274,7 +302,7 @@ class HueBridge:
 				errors.append(elem[error].keys()[0])
 
 		if len(errors):
-			raise AttrsNotSet(errors)
+			raise huectl.exception.AttrsNotSet(errors)
 				
 		return True
 
@@ -337,10 +365,10 @@ class HueBridge:
 		rv= self.call(f'scenes/{sceneid}', method='PUT', data=scene_data)
 
 		if not isinstance(rv, list):
-			raise BadResponse(rv)
+			raise huectl.exception.BadResponse(rv)
 
 		if not len(rv):
-			raise BadResponse(rv)
+			raise huectl.exception.BadResponse(rv)
 
 		errors= []
 		for elem in rv:
@@ -348,7 +376,7 @@ class HueBridge:
 				errors.append(elem[error].keys()[0])
 
 		if len(errors):
-			raise AttrsNotSet(errors)
+			raise huectl.exception.AttrsNotSet(errors)
 
 		return True
 
