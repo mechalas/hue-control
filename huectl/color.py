@@ -207,26 +207,23 @@ class HueColorxyY(HueColor):
 		if len(args) == 1:
 			arg0= args[0]
 
-			if isinstance(arg0, HueColorHSB):
-				pass
-
-			elif isinstance(arg0, HueColorxyY):
-				c= arg0
-				self.pt= HueColorPointxy(c.pt)
-				#self.bri= c.bri/254.0
+			if isinstance(arg0, HueColorxyY):
+				self.pt= HueColorPointxy(arg0.pt)
+				self.bri= arg0.bri
 
 			elif type(arg0) == tuple or list:
 				if len(arg0) != 3:
 					raise ValueError
 				for v in args:
 					if type(v) not in (int, float):
-						raise TypeError
+						raise TypeError('Need int or float, not '+str(type(v)))
 
 				x, y, bri= arg0
 				if x < 0.0 or x > 1.0 or y < 0.0 or y > 1.0 or bri < 0 or bri > 254:
 					raise ValueError
 
 				#self.bri= bri/254.0
+				self.bri= bri
 
 				self.pt= HueColorPointxy(x, y)
 
@@ -256,7 +253,7 @@ class HueColorxyY(HueColor):
 			if x < 0.0 or x > 1.0 or y < 0.0 or y > 1.0 or bri < 0 or bri > 254:
 				raise ValueError
 
-			#self.bri= bri/254.0
+			self.bri= bri
 			self.pt= HueColorPointxy(x, y)
 
 	def __getattr__(self, item):
@@ -291,15 +288,12 @@ class HueColorHSB(HueColor):
 				self.pt= HueColorPointHS(arg0.pt)
 				self.bri= arg0.bri
 
-			elif isinstance(arg0, HueColorxyY):
-				pass
-
 			elif type(arg0) == tuple or list:
 				if len(arg0) != 3:
 					raise ValueError
 				for v in args:
 					if type(v) not in (int, float):
-						raise TypeError
+						raise TypeError('Need int or float, not'+str(type(v)))
 
 				h, s, self.bri= arg0
 				s= min(1,max(s,0))
@@ -357,6 +351,13 @@ class HueColorHSB(HueColor):
 
 	def rgb(self):
 		return hsb_to_rgb(self.hue, self.sat, self.bri)
+	
+	def xyY(self):
+		return hsb_to_xyY((self.hue, self.sat, self.bri))
+
+	def cct(self):
+		xyY= self.xyY()
+		return xy_to_cct(xyY[0:2])
 
 #===========================================================================
 # HueColorTemp: Hue White and Hue White with Ambiance 
@@ -365,21 +366,37 @@ class HueColorHSB(HueColor):
 # Hue bulbs use the Mired scale
 
 class HueColorTemp:
-	def __init__(self, ct):
+	def __init__(self, ct, bri=1, kelvin=False):
+		self.bri= bri
+
 		if type(ct) not in (float, int):
 			raise TypeError
 
-		self.ct= ct
+		if kelvin:
+			self.ct= round(kelvin_to_mired(ct))
+		else:
+			self.ct= ct
 
 	def __str__(self):
 		ct= self.kelvin()
 		return f'<HueColorTemp> {ct}K'
 
 	def kelvin(self):
-		return int(round(mired_to_kelvin(self.ct), 0))
+		return round(mired_to_kelvin(self.ct))
 
 	def xy(self):
 		return cct_to_xy(self.kelvin())
+
+	def xyY(self):
+		xy= self.xy()
+		return HueColorxyY(xy[0], xy[1], self.bri)
+
+	def rgb(self):
+		return self.xyY().rgb()
+
+	def hsb(self):
+		hsb= rgb_to_hsb(self.rgb())
+		return HueColorHSB(*hsb)
 
 #===========================================================================
 # Utility functions
