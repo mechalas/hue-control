@@ -744,14 +744,24 @@ def init_hue(args):
 #----------------------------------------
 
 def do_color(args):
+	c= None
+
 	if args.from_color == args.to_color:
 		exit(0)
 
 	if args.from_color != 'ct':
-		c= list(map(lambda x: float(x), args.color.split(',')))
-		if len(c) != 3:
-			print('Color must be comma-separated triplet')
-			exit(1)
+		if args.from_color == 'rgb' and ',' not in args.from_color:
+			# Is it a hex color?
+			try:
+				c= hex_to_rgb(args.from_color)
+			except:
+				print('Color must be hex code or comma-separated tripled')
+				exit(1)
+		else:
+			c= list(map(lambda x: float(x), args.color.split(',')))
+			if len(c) != 3:
+				print('Color must be comma-separated triplet')
+				exit(1)
 
 	if args.from_color == 'xyY':
 		color= HueColorxyY(*c)
@@ -773,8 +783,8 @@ def do_color(args):
 		newcolor= color.hsb()
 		print(f'hue={newcolor.hue:.4f} sat={newcolor.sat:.4f} bri={newcolor.bri:.4f}')
 	elif args.to_color == 'rgb':
-		newcolor= list(map(lambda x: str(int(x*255)), color.rgb()))
-		print(','.join(newcolor))
+		r, g, b= list(map(lambda x: int(x*255), color.rgb()))
+		print(f'{r},{g},{b} #{r:02x}{b:02x}{g:02x}')
 
 
 #----------------------------------------
