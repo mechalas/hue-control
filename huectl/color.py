@@ -459,7 +459,7 @@ def hsb_to_rgb(*args):
 	else:
 		hh= h
 
-	while hh > 360.0:
+	while hh >= 360.0:
 		hh-= 360.0
 
 	hh/= 60.0
