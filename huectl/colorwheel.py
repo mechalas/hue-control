@@ -43,7 +43,7 @@ def colorname(*args):
 	else:
 		raise ValueError
 
-	if h > 360:
+	if h >= 360:
 		h-= 360*int(h/360)
 
 	if h < 0:
