@@ -665,6 +665,7 @@ def do_users_get(args):
 		print(user)
 
 def do_bridge_add(args):
+	hue= None
 	config= Config(args.config)
 
 	user_id= None
@@ -702,6 +703,8 @@ def do_bridge_add(args):
 	}
 	if 'name' in args:
 		kwargs['name']= args.name
+	elif hue is not None:
+		name= hue.name
 
 	if config.add_bridge(**kwargs):
 		config.save()

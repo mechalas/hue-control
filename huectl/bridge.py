@@ -111,11 +111,12 @@ class HueBridge:
 		if 'user_id' in kwargs:
 			self.set_user_id(kwargs['user_id'])
 
+		self._load_config()
+
 	def set_user_id(self, user_id):
 		self.user_id= user_id
 
 	def api_version(self):
-		self._load_config()
 		return self.config.apiversion
 
 	#------------------------------------------------------------
