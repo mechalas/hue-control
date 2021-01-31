@@ -4,6 +4,7 @@ from huectl.bridge import HueBridge, HueBridgeSearch
 from huectl.exception import BridgeDefined
 from huectl.group import HueGroup
 from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange
+from huectl.color import HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb
 from argparse import ArgumentParser
 import sys
 import json
@@ -739,6 +740,44 @@ def init_hue(args):
 	return hue
 
 #----------------------------------------
+# Color conversion
+#----------------------------------------
+
+def do_color(args):
+	if args.from_color == args.to_color:
+		exit(0)
+
+	if args.from_color != 'ct':
+		c= list(map(lambda x: float(x), args.color.split(',')))
+		if len(c) != 3:
+			print('Color must be comma-separated triplet')
+			exit(1)
+
+	if args.from_color == 'xyY':
+		color= HueColorxyY(*c)
+	elif args.from_color == 'hsb':
+		color= HueColorHSB(*c)
+	elif args.from_color == 'rgb':
+		hsb= rgb_to_hsb(list(map(lambda x: x/255, c)))
+		color= HueColorHSB(*hsb)
+		if args.to_color == 'hsb':
+			print(color)
+			exit(0)
+	elif args.from_color == 'ct':
+		color= HueColorTemp(float(args.color), kelvin=True)
+
+	if args.to_color == 'xyY':
+		newcolor= color.xyY()
+		print(f"x={newcolor.x:.4f} y={newcolor.y:.4f} Y={newcolor.bri:.4f}")
+	elif args.to_color == 'hsb':
+		newcolor= color.hsb()
+		print(f'hue={newcolor.hue:.4f} sat={newcolor.sat:.4f} bri={newcolor.bri:.4f}')
+	elif args.to_color == 'rgb':
+		newcolor= list(map(lambda x: str(int(x*255)), color.rgb()))
+		print(','.join(newcolor))
+
+
+#----------------------------------------
 # Util functions
 #----------------------------------------
 
@@ -1031,6 +1070,17 @@ parser_rlink_get.add_argument('id', nargs='*', help='Resourcelink IDs')
 parser_rlink_get.set_defaults(func=do_rlinks_get)
 
 
+# Color conversion
+#----------------------------------------
+
+parser_color= subparsers.add_parser('color', 
+	help='Convert colors between Hue-supported color systems')
+parser_color.add_argument('-f', '--from-color', choices=['xyY','hsb','rgb','ct'],
+	required=True, help='System to convert from')
+parser_color.add_argument('-t', '--to-color', choices=['xyY','hsb','rgb'],
+	required=True, help='System to convert to')
+parser_color.add_argument('color', help='A color coordinate as comma-separated values. xyY are from 0 to 1, h is from 0 to 360, rgb are from 0 to 255, and ct is a color temperature in Kelvin.')
+parser_color.set_defaults(func=do_color)
 
 #----------------------------------------
 # Parse and go
