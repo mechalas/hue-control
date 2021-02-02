@@ -27,9 +27,10 @@ class HueColorMode:
 	HSB= 'hsb'
 	xyY= 'xy'
 	CT= 'ct'
-	# A dummy mode that doesn't exist but we need something to separate
-	# white lights from the Hue Outlet.
-	Brightness= '__brightness_only__'
+	# Dummy modes that aren't reported in the 'colormode' of a light
+	# but which we need internally to separate color lights from
+	# dimmable white lights to on/off devices like the Hue outlet.
+	Dimmable= '__dimmable__'
 
 #============================================================================
 # Defines a light's capabilities.
@@ -73,7 +74,7 @@ class HueLightCapabilities:
 		# It's a bulb (and not, say, an outlet switch) and can 
 		# emit light.
 		if 'maxlumen' in ctl:
-			self.colormodes.add(HueColorMode.Brightness)
+			self.colormodes.add(HueColorMode.Dimmable)
 			self.maxlumen= ctl['maxlumen']
 			self.mindimlevel= ctl['mindimlevel']
 
@@ -106,7 +107,7 @@ class HueLightPreset(HueState):
 		if not isinstance(obj, dict):
 			raise TypeError
 
-		self.colormode= HueColorMode.Brightness
+		self.colormode= HueColorMode.Dimmable
 
 		if 'on' in obj:
 			self.on= obj['on']
@@ -439,7 +440,7 @@ class HueLight:
 		self.lightstate= HueLightState(data['state'])
 		
 	def islight(self):
-		if HueColorMode.Brightness in self.capabilities.colormodes:
+		if HueColorMode.Dimmable in self.capabilities.colormodes:
 			return True
 
 		return False
