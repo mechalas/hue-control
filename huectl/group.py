@@ -241,5 +241,68 @@ class HueGroup(HueContainer):
 		if self.sensors.unresolved_items() and sensors is not None:
 			self.sensors.resolve_items(sensors)
 
+	# Rename a group
+
 	def rename(self, name):
-		self.bridge.set_group_attributes(self.id, name=name)
+		try:
+			self.bridge.set_group_attributes(self.id, name=name)
+			# Update our local name on success
+			self.__dict__['name']= name
+		except Exception as e:
+			raise(e)
+
+	# Add, remove, or set the lights in a group. Only do the update
+	# on the bridge if something actually changes.
+
+	def add_lights(self, lights):
+		oldobj= self.lights.clone()
+
+		if self.lights.update(lights):
+			self._update_lights(oldobj)
+
+	def add_lights_byid(self, lightids):
+		oldobj= self.lights.clone()
+
+		if self.lights.update_fromkeys(lightids):
+			self._update_lights(oldobj)
+
+	def set_lights(self, lights):
+		oldobj= self.lights.clone()
+	
+		self.lights.clear()
+		if self.lights.update(lights):
+			self._update_lights(oldobj)
+
+	def set_lights_byid(self, lightids):
+		oldobj= self.lights.clone()
+
+		self.lights.clear()
+		if self.lights.update_fromkeys(lightids):
+			self._update_lights(oldobj)
+
+	def del_lights(self, lights):
+		oldobj= self.lights.clone()
+
+		if self.del_lights_byid(list(map(lambda x: x.id, lights))):
+			self._update_lights(oldobj)
+
+	def del_lights_byid(self, lightids):
+		oldobj= self.lights.clone()
+
+		status= False
+		for lightid in lightids:
+			if self.lights.remove(lightid):
+				status= True
+		
+		if status:
+			self._update_lights(oldobj)
+
+	def _update_lights(self, oldlights):
+		# Revert if there's a failure
+		try:
+			self.bridge.set_group_attributes(self.id,
+				lights=self.lights.keys(unresolved=True))
+		except Exception as e:
+			self.lights= oldlights
+			raise(e)
+

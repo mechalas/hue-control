@@ -192,6 +192,21 @@ def do_bridge_search(args):
 # Groups
 #----------------------------------------------------------------------------
 
+def do_group_edit(args):
+	hue= init_hue(args)
+
+	groupid= args.groupid
+	group= hue.get_group(args.groupid)
+
+	if args.set_lights:
+		group.set_lights_byid(args.set_lights)
+
+	elif args.add_lights:
+		group.add_lights_byid(args.add_lights)
+
+	elif args.remove_lights:
+		group.del_lights_byid(args.remove_lights)
+
 def do_group_rename(args):
 	hue= init_hue(args)
 
@@ -866,13 +881,15 @@ parser_bridge_add.set_defaults(func=do_bridge_add)
 # Group management
 #--------------------
 
-# group
+# list
 
 parser_group= subparsers.add_parser('group',
 	help='List group definitions')
 standard_args(parser_group, 'raw', 'pretty', 'bridge')
 parser_group.add_argument('id', nargs='*', help='Group IDs')
 parser_group.set_defaults(func=do_group)
+
+# rename
 
 parser_group_rename= subparsers.add_parser('group-rename',
 	help='Rename a group')
@@ -881,6 +898,19 @@ parser_group_rename.add_argument('id', help='Group ID')
 parser_group_rename.add_argument('name', help='New group name')
 parser_group_rename.set_defaults(func=do_group_rename)
 
+# light memembership mgmt
+
+parser_group_edit= subparsers.add_parser('group-lights',
+	help="Set/change a group's member lights")
+standard_args(parser_group_edit, 'bridge')
+parser_group_edit.add_argument('-g', '--groupid', help='The group to modify')
+parser_group_edit.add_argument('-a', '--add-lights', nargs='+',
+	metavar='LIGHTID', help='Add lights to the group')
+parser_group_edit.add_argument('-r', '--remove-lights', nargs='+',
+	metavar='LIGHTID', help='Remove lights from the group')
+parser_group_edit.add_argument('-s', '--set-lights', nargs='+',
+	metavar='LIGHTID', help='Set the list of lights in the group. Cannot be combined with -a or -r.')
+parser_group_edit.set_defaults(func=do_group_edit)
 
 # Light management
 #--------------------
