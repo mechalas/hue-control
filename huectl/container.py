@@ -13,6 +13,29 @@ class HueCollection:
 		self.resolved_items= dict()
 		self.unresolved_item_ids= set()
 
+	# Make a copy of the collection. This copies the keys (item ID's)
+	# but NOT the objects that they reference.
+
+	def clone(self):
+		h= HueCollection(self.item_type)
+		h.resolved_items.update(self.resolved_items)
+		h.unresolved_item_ids= set(self.unresolved_item_ids)
+		return h
+
+	def remove(self, item_id):
+		if item_id in self.resolved_items:
+			del self.resolved_items[item_id]
+			return True
+		elif item_id in self.unresolved_item_ids:
+			self.unresolved_item_ids.remove(item_id)
+			return True
+
+		return False
+
+	def clear(self):
+		self.resolved_items= dict()
+		self.unresolved_item_ids= set()
+
 	def keys(self, sort=False, unresolved=False):
 		idlist= list(self.resolved_items.keys())
 		if unresolved:
@@ -31,32 +54,49 @@ class HueCollection:
 
 	# Add a dictionary of form { id: obj }
 	def update(self, items):
-		if not ( isinstance(items, dict) ):
-			raise TypeError
+		if isinstance(items, dict):
+			ar= items.values()
+		elif isinstance(items, list):
+			ar= items
+		else:
+			raise TypeError('Expected list or dict')
 
 		if not(len(items)):
 			return False
 
-		for itemid,itemobj in items.items():
-			skey= str(itemid)
+		rv= False
+
+		for itemobj in ar:
+			skey= str(itemobj.id)
 			if self.item_type != type(itemobj):
-				raise TypeError
+				raise TypeError(f'Expected {self.item_type}')
 
-			self.resolved_items[skey]= itemobj
-			if skey in self.unresolved_item_ids:
-				self.unresolved_item_ids.remove(skey)
+			if skey not in self.resolved_items:
+				rv= True
 
-		return True
+				self.resolved_items[skey]= itemobj
+
+				if skey in self.unresolved_item_ids:
+					self.unresolved_item_ids.remove(skey)
+
+		return rv
 	
 	def update_fromkeys(self, items):
 		if not ( isinstance(items, list) or isinstance(items, tuple) ):
 			raise TypeError
 
-		if not(len(items)):
+		if not len(items):
 			return False
+
+		n= len(self.unresolved_item_ids)
 
 		# Make sure the keys are strings
 		self.unresolved_item_ids|= set(map(lambda x: str(x), items))
+
+		if len(self.unresolved_item_ids) == n:
+			return False
+
+		return True
 
 	def item(self, itemid):
 		skey= str(itemid)
