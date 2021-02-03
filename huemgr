@@ -529,6 +529,16 @@ def do_scene_dump(args):
 	sdef['scene']= dict()
 	sdef['scene']['id']= scene.id
 	sdef['scene']['name']= scene.name
+	if scene.transitiontime is not None:
+		sdef['scene']['transitiontime']= str(scene.transitiontime)
+	if hasattr(scene, 'group'):
+		if scene.group is not None:
+			sdef['scene']['group']= str(scene.group)
+	if hasattr(scene, 'type'):
+		if scene.type is not None:
+			sdef['scene']['type']= scene.type
+	if hasattr(scene, 'recycle'):
+		sdef['scene']['recycle']= str(scene.recycle)
 
 	# Do we have lightstates?
 	if scene.has_presets():
@@ -570,7 +580,7 @@ def do_scene_dump(args):
 
 		if scene.has_presets():
 			preset= scene.preset(lightid)
-			sdef[secname]= preset.data()
+			sdef[secname]= preset.asdict()
 		else:
 			sdef[secname]= []
 
@@ -585,10 +595,15 @@ def do_scene_dump(args):
 	
 def do_scene_load(args):
 	sdef= configparser.ConfigParser()
-
-
 	hue= init_hue(args)
 
+	try:
+		sdef.read_file(open(args.file))
+	except Exception as e:
+		print(f'{args.file}: {e}')
+		exit(1)
+
+	# Turn the INI file into a scene definition
 
 
 def do_scene_rename(args):
@@ -1101,7 +1116,9 @@ parser_scene_load= subparsers.add_parser('scene-load',
 	help='Load a scene definition from an INI file and save it to the bridge. A new scene will be created unless an existing scene id is specified.')
 standard_args(parser_scene_load, 'bridge')
 parser_scene_load.add_argument('-s', '--scene-id', 
-	help='Update scene with scene id SCENE_ID')
+	help='Update scene with scene id SCENE_ID. This will override any scene id stored in the INI file.')
+parser_scene_load.add_argument('file', 
+	help='The INI file containing the scene definition')
 parser_scene_load.set_defaults(func=do_scene_load)
 
 # Schedule management
