@@ -566,13 +566,21 @@ def do_scene_dump(args):
 
 		sdef= configparser.ConfigParser()
 		secname= 'light '+lightid
+		preset= None
+
 		if scene.has_presets():
 			preset= scene.preset(lightid)
 			sdef[secname]= preset.data()
 		else:
 			sdef[secname]= []
 
+		# Add light name and color as comments
 		print(f'; {lightname}')
+		if preset:
+			if preset.color() is not None:
+				cname= preset.color().name()
+				print(f'; color: {cname}')
+
 		sdef.write(sys.stdout)
 	
 def do_scene_load(args):
