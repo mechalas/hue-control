@@ -137,6 +137,11 @@ class HueScene(HueContainer):
 		except KeyError:
 			return None
 
+	def supports_app_data(self):
+		if self.bridge.api_version() >= '1.1':
+			return True
+		return False
+
 	def rename(self, name):
 		if name is None:
 			return False

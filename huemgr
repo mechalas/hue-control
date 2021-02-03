@@ -514,7 +514,9 @@ def _scene_preset(scene, lightid):
 
 	return str(preset)
 
-# Use configparser to dump an INI file of the scene def
+# Use configparser to dump an INI file of the scene def. Use INI because
+# it's easier for humans to read and write, and the Hue data structures
+# are not very complicated.
 
 def do_scene_dump(args):
 	hue= init_hue(args)
@@ -533,6 +535,21 @@ def do_scene_dump(args):
 		sdef['scene']['lightstates']= str(True)
 	else:
 		sdef['scene']['lightstates']= str(False)
+
+	# Is there appdata?
+	if scene.supports_app_data():
+		appdata= scene.appdata
+
+		if appdata is not None:
+			data= dict()
+			for k,v in appdata.items():
+				# We don't supported nested structures, just a simple
+				# set of key:value pairs.
+
+				if isinstance(v, (int, str, float)):
+					data[k]= str(v)
+			if len(data):
+				sdef['appdata']= data
 
 	sdef.write(sys.stdout)
 
