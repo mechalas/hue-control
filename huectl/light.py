@@ -173,8 +173,10 @@ class HueState:
 	def color(self):
 		if self.colormode == HueColorMode.xyY:
 			return HueColorxyY(self.xy, self.bri/254.0)
-		else:
+		elif self.colormode == HueColorMode.HSB:
 			return HueColorHSB(self.hs, self.bri/254.0)
+		else:
+			return None
 
 #============================================================================
 # HueLightPreset is a state that is stored in a scene. It is really just a
