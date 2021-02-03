@@ -237,7 +237,7 @@ class HueLightPreset(HueState):
 
 		return s
 
-	def data(self):
+	def asdict(self):
 		d= dict()
 
 		if self.on is not None:
@@ -583,5 +583,5 @@ class HueLight:
 		self.bridge.set_light_attributes(self.id, name=name)
 
 	def change_state(self, schange):
-		return self.bridge.set_light_state(self.id, schange.data())
+		return self.bridge.set_light_state(self.id, schange.asdict())
 
