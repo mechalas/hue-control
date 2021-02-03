@@ -308,19 +308,17 @@ class HueLightState(HueState):
 		if not self.reachable:
 			return '<HueLightState> unreachable'
 
-		if self.on:
-			onoff= 'on'
-		else:
-			onoff= 'off'
+		if not self.on:
+			return '<HueLightState> off'
 
 		if self.colormode in (HueColorMode.xyY, HueColorMode.HSB):
 			c= self.color()
-			return f'<HueLightState> {onoff} {c}'
+			return f'<HueLightState> on {c}'
 		elif self.colormode == HueColorMode.CT:
 			ct= self.colortemp()
-			return f'<HueLightState> {onoff} {ct}'
+			return f'<HueLightState> on {ct}'
 
-		return f'<HueLightState> {onoff}'
+		return '<HueLightState> on'
 
 
 #============================================================================
