@@ -1,3 +1,4 @@
+import huectl.bridge
 from huectl.exception import InvalidOperation
 from huectl.color import HueColorxyY, HueColorHSB, HueColorPointxy, HueColorPointHS, HueColorGamut, HueColorTemp, kelvin_to_mired
 import json
@@ -497,16 +498,13 @@ class HueLight:
 		else:
 			raise TypeError('obj: Expected str or dict, not '+str(type(obj)))
 
-		if bridge is None:
-			raise TypeError('bridge: Expected HueBridge object, not NoneType')
+		if not (isinstance(lightid, int) or isinstance(lightid, str)):
+			raise TypeError('lightid: Expected int or str, not '+str(type(lightid)))
 
-		if lightid is None:
-			raise TypeError('lightid: Expected int or str, not NoneType')
+		light= HueLight(bridge)
 
-		light= HueLight()
 		# Make sure id is a string
 		light.id= str(lightid)
-		light.bridge= bridge
 
 		for attr in HueLight.top_attrs:
 			if attr in d:
@@ -523,8 +521,11 @@ class HueLight:
 		
 		return light
 
-	def __init__(self):
-		self.bridge= None
+	def __init__(self, bridge):
+		if not isinstance (bridge, huectl.bridge.HueBridge):
+			raise TypeError('bridge: Expected HueBridge object, not NoneType')
+
+		self.bridge= bridge
 		self.id= None
 		self.name= None
 		self.type= None
