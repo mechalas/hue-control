@@ -253,7 +253,7 @@ class HueLightPreset(HueState):
 			d['hue']= round(self.hs.hue,4)
 			d['sat']= round(self.hs.sat,4)
 		elif self.ct is not None:
-			d['ct']= int(self.ct)
+			d['ct']= int(self.ct.kelvin())
 		elif self.xy is not None:
 			d['x']= round(self.xy.x,4)
 			d['y']= round(self.xy.y,4)
