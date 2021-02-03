@@ -25,7 +25,7 @@ class HueDynamicEffect:
 		return effect in HueDynamicEffect._supported_effects
 
 class HueColorMode:
-	HSB= 'hsb'
+	HSB= 'hs'
 	xyY= 'xy'
 	CT= 'ct'
 	# Dummy modes that aren't reported in the 'colormode' of a light
@@ -318,7 +318,7 @@ class HueLightState(HueState):
 			ct= self.colortemp()
 			return f'<HueLightState> on {ct}'
 
-		return '<HueLightState> on'
+		return f'<HueLightState> on {self.colormode}'
 
 
 #============================================================================
