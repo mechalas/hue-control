@@ -78,7 +78,7 @@ class HueCollection:
 		return rv
 	
 	def update_fromkeys(self, items):
-		if not ( isinstance(items, list) or isinstance(items, tuple) ):
+		if not isinstance(items, (list, tuple)):
 			raise TypeError
 
 		if not len(items):

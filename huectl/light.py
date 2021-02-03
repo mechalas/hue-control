@@ -386,7 +386,7 @@ class HueLightStateChange:
 			del self.change['ct']
 
 	def set_xy(self, xy):
-		if not (isinstance(xy, list) or isinstance(xy, tuple)):
+		if not isinstance(xy, (list, tuple)):
 			raise TypeError(f'xy must be tuple or list')
 		if len(xy) != 2:
 			raise ValueError(f'xy must be coordinate pair')
@@ -402,7 +402,7 @@ class HueLightStateChange:
 		self.change['xy']= [ round(x,4), round(y,4) ]
 
 	def inc_xy(self, xy):
-		if not (isinstance(xy, list) or isinstance(xy, tuple)):
+		if not isinstance(xy, (list, tuple)):
 			raise TypeError(f'xy must be tuple or list')
 		if len(xy) != 2:
 			raise ValueError(f'xy must be increment pair')
@@ -498,7 +498,7 @@ class HueLight:
 		else:
 			raise TypeError('obj: Expected str or dict, not '+str(type(obj)))
 
-		if not (isinstance(lightid, int) or isinstance(lightid, str)):
+		if not isinstance(lightid, (int, str)):
 			raise TypeError('lightid: Expected int or str, not '+str(type(lightid)))
 
 		light= HueLight(bridge)

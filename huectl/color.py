@@ -86,7 +86,7 @@ class HueColorGamut:
 
 		if len(args) == 1:
 			arg0= args[0]
-			if isinstance(arg0, tuple) or isinstance(arg0, list):
+			if isinstance(arg0, (tuple, list)):
 				for ar in arg0:
 					if len(ar) != 2:
 						raise ValueError
@@ -99,7 +99,7 @@ class HueColorGamut:
 
 		elif len(args) == 3:
 			for ar in args:
-				if not ( isinstance(ar, tuple) or isinstance(ar, list) ):
+				if not isinstance(ar, (tuple, list)):
 					raise TypeError
 
 				if len(ar) != 2:
@@ -433,7 +433,7 @@ def hsb_to_rgb(*args):
 
 	if len(args) == 1:
 		arg0= args[0]
-		if isinstance(arg0, list) or isinstance(arg0, tuple):
+		if isinstance(arg0, (tuple, list)):
 			for x in arg0:
 				if type(x) not in (int, float):
 					raise TypeError
@@ -489,7 +489,7 @@ def rgb_to_hsb(*args):
 
 	if len(args) == 1:
 		arg0= args[0]
-		if isinstance(arg0, list) or isinstance(arg0, tuple):
+		if isinstance(arg0, (tuple, list)):
 			for x in arg0:
 				if type(x) not in (int, float):
 					raise TypeError

@@ -36,7 +36,7 @@ pts=((0.25,1.0),(0.50,1.0),(1.0,1.0),(1.0,0.66),(1.0,0.33))
 def colorname(*args):
 	if len(args) == 1:
 		arg0= args[0]
-		if isinstance(arg0, tuple) or isinstance(arg0, list):
+		if isinstance(arg0, (tuple, list)):
 			h, s, b= arg0
 	elif len(args) == 3:
 		h, s, b= args
