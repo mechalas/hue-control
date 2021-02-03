@@ -30,27 +30,99 @@ class HueColorMode:
 	# Dummy modes that aren't reported in the 'colormode' of a light
 	# but which we need internally to separate color lights from
 	# dimmable white lights to on/off devices like the Hue outlet.
-	Dimmable= '__dimmable__'
+	Dimmable= 'bri'
+
+class HueLightClass:
+	# On/off only (e.g. Hue Smart Plug"
+	OnOff= "On/Off"
+
+	# Dimmable light (e.g. Hue White)
+	Dimmable= "Dimmable"
+
+	# Color temperature (e.g. Hue White Ambiance)
+	ColorTemperature= "Color Temperature"
+
+	# Color but no color temperature (e.g. Hue Bloom, Hue Light Strip)
+	Color= "Color"
+
+	# Color and color temperature (e.g. Hue Light Strip Plus, Hue White
+	# and Color Ambiance)
+	ExtendedColor= "Extended Color"
+
+	_supported= {
+		OnOff: [],
+		Dimmable: [ HueColorMode.Dimmable ],
+		ColorTemperature: [ HueColorMode.Dimmable, HueColorMode.CT ],
+		Color: [ HueColorMode.Dimmable, HueColorMode.HSB, HueColorMode.xyY ],
+		ExtendedColor: [ HueColorMode.Dimmable, HueColorMode.CT,
+			HueColorMode.HSB, HueColorMode.xyY ]
+	}
+
+	@staticmethod
+	def supported(lightclass):
+		return set(HueLightClass._supported[lightclass])
 
 #============================================================================
 # Defines a light's capabilities.
 #============================================================================
 
 class HueLightCapabilities:
-	def __init__(self, obj):
-		self.colormodes= set()
+	@staticmethod
+	def parse_definition(obj):
+		if isinstance(obj, str):
+			d= json.loads(obj)
+		elif isinstance(obj, dict):
+			d= obj
+		else:
+			raise TypeError('obj: Expected str or dict, not '+str(type(obj)))
+
+		cap= HueLightCapabilities()
+
+		# What kind of light is it?
+
+		ctl= d['control']
+		if 'ct' in ctl:
+			if 'colorgamut' in ctl:
+				cap.lightclass= HueLightClass.ExtendedColor
+			else:
+				cap.lightclass= HueLightClass.ColorTemperature
+		elif 'colorgamut' in ctl:
+			cap.lightclass= HueLightClass.Color
+		elif 'maxlumen' in ctl:
+			cap.lightclass= HueLightClass.Dimmable
+		else:
+			cap.lightclass= HueLightClass.OnOff
+
+		cap.colormodes= HueLightClass.supported(cap.lightclass)
+
+		# Flatten the control structure for ease of use
+
+		if 'colorgamut' in ctl:
+			cap.colorgamut= HueColorGamut(ctl['colorgamut'])
+
+		if 'maxlumen' in ctl:
+			cap.maxlumen= ctl['maxlumen']
+			cap.mindimlevel= ctl['mindimlevel']
+
+		# Flatten the streaming structure for ease of use
+
+		if 'streaming' in d:
+			cap.renderer= d['streaming']['renderer']
+			cap.proxy= d['streaming']['proxy']
+
+		cap.certified= d['certified']
+
+		return cap
+
+	def __init__(self):
+		self.colormodes= None
 		self.ct= None
 		self.colorgamut= None
 		self.maxlumen= None
 		self.mindimlevel= None
-
-		if isinstance(obj, str):
-			d= json.loads(obj)
-			self._load(d)
-		elif isinstance(obj, dict):
-			self._load(obj)
-		else:
-			raise TypeError
+		self.certified= None
+		self.proxy= None
+		self.renderer= None
 
 	def __str__(self):
 		cmodes= str(self.colormodes)
@@ -78,6 +150,11 @@ class HueLightCapabilities:
 			self.maxlumen= ctl['maxlumen']
 			self.mindimlevel= ctl['mindimlevel']
 
+#============================================================================
+# HueState is the base class for a light state, but it can apply to
+# a group, scene/preset, or light.
+#============================================================================
+
 class HueState:
 	def __init__(self):
 		self.on= False
@@ -97,6 +174,11 @@ class HueState:
 			return HueColorxyY(self.xy, self.bri/254.0)
 		else:
 			return HueColorHSB(self.hs, self.bri/254.0)
+
+#============================================================================
+# HueLightPreset is a state that is stored in a scene. It is really just a
+# state plus a transition time.
+#============================================================================
 
 class HueLightPreset(HueState):
 	def __init__(self, obj):
@@ -177,6 +259,11 @@ class HueLightPreset(HueState):
 
 		return d
 
+#============================================================================
+# HueLightState defines a light's current state, which includes some
+# additional information such as its reachability and active mode.
+#============================================================================
+
 class HueLightState(HueState):
 	def __init__(self, obj):
 		super().__init__()
@@ -235,9 +322,9 @@ class HueLightState(HueState):
 		return f'<HueLightState> {onoff}'
 
 
-#----------------------------------------------------------------------------
+#============================================================================
 # HueLightStateChange: A light state change requested by the user
-#----------------------------------------------------------------------------
+#============================================================================
 
 class HueLightStateChange:
 	# Multiple color mode changes can be specified. The bridge will
@@ -379,22 +466,66 @@ class HueLightStateChange:
 	def __str__(self):
 		return json.dumps(self.change)
 
-#----------------------------------------------------------------------------
+#============================================================================
 # A Hue light
 #
 # These objects should not generally be created by user applications. The
 # definitions come from the bridge. Note that a "light" can also include 
 # items that are not specifically lights such as outlet adapters (e.g.
 # the Hue Smart Plug)
-#----------------------------------------------------------------------------
+#============================================================================
 
 class HueLight:
-	def __init__(self, obj, lightid=None, bridge=None):
-		if bridge is None:
-			raise ValueError('bridge cannot be None')
+	top_attrs= (
+		'manufacturername',
+		'modelid',
+		'name',
+		'productid',
+		'productname',
+		'swconfigid',
+		'swversion',
+		'type',
+		'uniqueid'
+	)
 
-		self.bridge= bridge
-		self.id= lightid
+	@staticmethod
+	def parse_definition(obj, bridge=None, lightid=None):
+		if isinstance(obj, str):
+			d= json.loads(obj)
+		elif isinstance(obj, dict):
+			d= obj
+		else:
+			raise TypeError('obj: Expected str or dict, not '+str(type(obj)))
+
+		if bridge is None:
+			raise TypeError('bridge: Expected HueBridge object, not NoneType')
+
+		if lightid is None:
+			raise TypeError('lightid: Expected int or str, not NoneType')
+
+		light= HueLight()
+		# Make sure id is a string
+		light.id= str(lightid)
+		light.bridge= bridge
+
+		for attr in HueLight.top_attrs:
+			if attr in d:
+				light.__dict__[attr]= d[attr]
+
+		if 'luminaireuniqueid' in d:
+			light.luminaireuniqueid= d['luminaireuniqueid']
+
+		light.config= d['config']
+
+		# Load capabilities before state since the latter needs the former
+		light.capabilities= HueLightCapabilities.parse_definition(d['capabilities'])
+		light.lightstate= HueLightState(d['state'])
+		
+		return light
+
+	def __init__(self):
+		self.bridge= None
+		self.id= None
 		self.name= None
 		self.type= None
 		self.modelid= None
@@ -409,36 +540,9 @@ class HueLight:
 		self.config= dict()
 		self.lightstate= None
 
-		if isinstance(obj, str):
-			data= json.loads(obj)
-			self._load(data)
-		elif isinstance(obj, dict):
-			self._load(obj)
-		elif isinstance(obj, HueLight):
-			pass
-		else:
-			raise TypeError
-
 	def __str__(self):
 		return f'<HueLight> {self.id} {self.name}, {self.productname}, {self.lightstate}'
 
-	def _load(self, data):
-		self.name= data['name']
-		self.type= data['type']
-		self.modelid= data['modelid']
-		self.uniqueid= data['uniqueid']
-		self.manufacturername= data['manufacturername']
-		self.productname= data['productname']
-		self.swversion= data['swversion']
-		if 'luminaireuniqueid' in data:
-			self.self.luminaireuniqueid= data['luminaireuniqueid']
-
-		self.config= data['config']
-
-		# Load capabilities before state since the latter needs the former
-		self.capabilities= HueLightCapabilities(data['capabilities'])
-		self.lightstate= HueLightState(data['state'])
-		
 	def islight(self):
 		if HueColorMode.Dimmable in self.capabilities.colormodes:
 			return True

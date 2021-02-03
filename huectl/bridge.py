@@ -251,7 +251,7 @@ class HueBridge:
 		if raw:
 			return data
 
-		return HueLight(data, lightid=lightid, bridge=self)
+		return HueLight.parse_definition(data, lightid=lightid, bridge=self)
 		
 	def get_all_lights(self, raw=False):
 		data= self.call('lights', raw=raw)
@@ -260,7 +260,8 @@ class HueBridge:
 
 		lights= dict()
 		for lightid, lightdata in data.items():
-			lights[lightid]= HueLight(lightdata, lightid=lightid, bridge=self)
+			lights[lightid]= HueLight.parse_definition(lightdata,
+				lightid=lightid, bridge=self)
 
 		return lights
 
