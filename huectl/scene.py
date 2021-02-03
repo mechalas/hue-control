@@ -17,7 +17,7 @@ class HueScene(HueContainer):
 
 		self.name= None
 		self.id= sceneid
-		self.transitiontime= 0
+		self.transitiontime= None
 		self._has_lightstates= False
 
 		apiver= self.bridge.api_version()
@@ -124,6 +124,32 @@ class HueScene(HueContainer):
 				lstates[lightid]= HueLightPreset(sdata)
 
 			self.lightstates.update(lstates)
+
+	def asdict(self):
+		apiver= self.bridge.api_version()
+
+		d= {
+			'id': self.id,
+			'name': self.name
+		}
+		if self.transitiontime is not None:
+			d['transitiontime']= self.transitiontime
+
+		if apiver >= '1.11':
+			d['recycle']= self.recycle
+			d['appdata']= self.appdata
+
+		if apiver > '1.28':
+			if self.group is not None:
+				d['group']= self.group
+			d['type']= self.type
+
+		if self.has_presets():
+			ls= d['lightstates']= dict()
+			for light in self.lights.values(unresolved=True):
+				ls[light.id]= self.preset(light.id).asdict()
+		else:
+			d['lights']= self.lights.keys(unresolved=True)
 
 	def light(self, lightid):
 		return self.lights.item(lightid)
