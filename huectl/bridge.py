@@ -185,14 +185,11 @@ class HueBridge:
 		if raw:
 			return data 
 
-		kwargs= dict()
-		if lights is not None:
-			kwargs['lights']= lights
-		if sensors is not None:
-			kwargs['sensors']= sensors
-
-		group= HueGroup(groupid=groupid, bridge=self)
-		group.load(data, **kwargs)
+		group= HueGroup.parse_definition(data, groupid=groupid, bridge=self)
+		if lights:
+			group.lights.resolve_items(lights)
+		if sensors:
+			group.sensors.resolve_items(sensors)
 
 		return group
 
@@ -201,17 +198,18 @@ class HueBridge:
 		if raw:
 			return data 
 
-		kwargs= dict()
-		if lights is not None:
-			kwargs['lights']= lights
-		if sensors is not None:
-			kwargs['sensors']= sensors
-
 		groups= dict()
 		for groupid, groupdata in data.items():
-			group= HueGroup(groupid=groupid, bridge=self)
-			group.load(groupdata, **kwargs)
+			group= HueGroup.parse_definition(groupdata, groupid=groupid,
+				bridge=self)
+
+			if lights:
+				group.lights.resolve_items(lights)
+			if sensors:
+				group.sensors.resolve_items(sensors)
+
 			groups[groupid]= group
+
 
 		return groups
 

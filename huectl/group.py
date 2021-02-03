@@ -3,6 +3,8 @@ from huectl.container import HueContainer
 from huectl.light import HueLight, HueLightState, HueLightStateChange
 from huectl.sensor import HueSensor
 from huectl.version import HueApiVersion
+# Work around circular import 
+import huectl.bridge
 
 class HueGroupType:
 	Luminaire= "Luminaire"
@@ -155,15 +157,60 @@ class HueGroupAction:
 		if 'colormode' in obj:
 			self.colormode= obj['colormode']
 
+#============================================================================
+# HueGroup represents a group of lights and sensors on the bridge.
+#============================================================================
+
 class HueGroup(HueContainer):
-	def __init__(self, groupid=None, bridge=None):
+	@staticmethod
+	def parse_definition(obj, bridge=None, groupid=None):
+
+		# The check for bridge is done in the constructor
+
+
+		if not isinstance(groupid, str):
+			raise TypeError('groupid: expected str not '+str(type(groupid)))
+
+		if isinstance(obj, str):
+			d= json.loads(obj)
+		elif isinstance(obj, dict):
+			d= obj
+		else:
+			raise TypeError('obj: Expected str or dict, not '+str(type(obj)))
+
+		group= HueGroup(bridge=bridge)
+
+		group.id= str(groupid)
+		group.name= d['name']
+		group.recycle= d['recycle']
+
+		group.type= d['type']
+
+		if 'lights' in d:
+			group.lights.update_fromkeys(d['lights'])
+
+		if 'sensors' in d:
+			group.sensors.update_fromkeys(d['sensors'])
+
+		if 'class' in d:
+			group.room_class= d['class']
+
+		group.all_on= d['state']['all_on']
+		group.any_on= d['state']['any_on']
+
+		if 'action' in d:
+			group.action= HueLightState(d['action'])
+
+		return group
+
+
+	def __init__(self, bridge):
 		super().__init__()
 
-		if bridge is None:
-			raise ValueError('bridge cannot be None')
-		self.bridge= bridge
+		if not isinstance(bridge, huectl.bridge.HueBridge):
+			raise TypeError('expected HueBridge not '+str(type(bridge)))
 
-		self.id= groupid
+		self.bridge= bridge
 
 		apiver= self.bridge.api_version()
 
@@ -197,49 +244,9 @@ class HueGroup(HueContainer):
 			slights= str(light_ids)
 			s+= f', lights {slights}'
 
-#		if self._allows_sensors:
-#			ssensors= self._id_list(self.sensors, self.missing_sensors)
-#			if len(ssesnsors):
-#				s+= ', sensors {ssensors}'
+		# TO DO: Add sensors
 
 		return s
-
-
-	# Load from JSON or a dict. Optionally supply a cache of
-	# light and sensor definitions to map light and sensor ID's
-	# to the appropriate objects. 
-	#
-	# Unknown object id's will need to be fetched from the bridge
-	# later.
-
-	def load(self, obj, lights=None, sensors=None):
-		if isinstance(obj, str):
-			d= json.loads(obj)
-		elif isinstance(obj, dict):
-			d= obj
-		else:
-			raise TypeError
-
-		self.name= d['name']
-		self.recycle= d['recycle']
-
-		self.type= d['type']
-
-		self.lights.update_fromkeys(d['lights'])
-		self.sensors.update_fromkeys(d['sensors'])
-		if 'class' in d:
-			self.room_class= d['class']
-		self.all_on= d['state']['all_on']
-		self.any_on= d['state']['any_on']
-
-		if 'action' in d:
-			self.action= HueLightState(d['action'])
-
-		if self.lights.unresolved_items() and lights is not None:
-			self.lights.resolve_items(lights)
-
-		if self.sensors.unresolved_items() and sensors is not None:
-			self.sensors.resolve_items(sensors)
 
 	# Rename a group
 
