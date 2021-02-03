@@ -269,7 +269,10 @@ class HueColorxyY(HueColor):
 
 	def __str__(self):
 		return '<HueColorxyY> x={:.3f}, y={:.3f}, Y={:.3f} ({:s})'.format(
-			self.x, self.y, self.Y, colorname(self.hsb()))
+			self.x, self.y, self.Y, self.name())
+
+	def name(self):
+		return colorname(self.hsb())
 
 	def rgb(self):
 		return xyY_to_rgb((self.pt.x, self.pt.y, self.bri))
@@ -347,7 +350,10 @@ class HueColorHSB(HueColor):
 		return { 'hue': self.h, 'sat': self.s, 'bri': self.bri }
 
 	def __str__(self):
-		return '<HueColorHSB> hue={:.3f}, sat={:.3f}, bri={:.3f} ({:s})'.format(self.hue, self.sat, self.bri, colorname(self.hue, self.sat, self.bri))
+		return '<HueColorHSB> hue={:.3f}, sat={:.3f}, bri={:.3f} ({:s})'.format(self.hue, self.sat, self.bri, self.name())
+
+	def name(self):
+		return colorname(self.hue, self.sat, self.bri)
 
 	def rgb(self):
 		return hsb_to_rgb(self.hue, self.sat, self.bri)
