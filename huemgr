@@ -519,10 +519,13 @@ def _scene_preset(scene, lightid):
 def do_scene_dump(args):
 	hue= init_hue(args)
 
+	# Get light data so we can get names
+	lights= hue.get_all_lights()
 	scene= hue.get_scene(args.id)
 
 	sdef= configparser.ConfigParser()
 	sdef['scene']= dict()
+	sdef['scene']['id']= scene.id
 	sdef['scene']['name']= scene.name
 
 	# Do we have lightstates?
@@ -531,15 +534,37 @@ def do_scene_dump(args):
 	else:
 		sdef['scene']['lightstates']= str(False)
 
+	sdef.write(sys.stdout)
+
 	for lightid in scene.lights.keys(unresolved=True):
+		if lightid in lights:
+			light= lights[lightid]
+			lightname= light.name
+		else:
+			lightname= 'UNKNOWN LIGHT'
+
+		# Get a new one of these each time because we want the
+		# convenience of the write method and the ability to
+		# print comments.
+
+		sdef= configparser.ConfigParser()
 		secname= 'light '+lightid
 		if scene.has_presets():
 			preset= scene.preset(lightid)
 			sdef[secname]= preset.data()
 		else:
 			sdef[secname]= []
+
+		print(f'; {lightname}')
+		sdef.write(sys.stdout)
 	
-	sdef.write(sys.stdout)
+def do_scene_load(args):
+	sdef= configparser.ConfigParser()
+
+
+	hue= init_hue(args)
+
+
 
 def do_scene_rename(args):
 	hue= init_hue(args)
@@ -1044,6 +1069,15 @@ parser_scene_dump= subparsers.add_parser('scene-dump',
 standard_args(parser_scene_dump, 'bridge')
 parser_scene_dump.add_argument('id', help='Scene ID')
 parser_scene_dump.set_defaults(func=do_scene_dump)
+
+# scene-load
+
+parser_scene_load= subparsers.add_parser('scene-load',
+	help='Load a scene definition from an INI file and save it to the bridge. A new scene will be created unless an existing scene id is specified.')
+standard_args(parser_scene_load, 'bridge')
+parser_scene_load.add_argument('-s', '--scene-id', 
+	help='Update scene with scene id SCENE_ID')
+parser_scene_load.set_defaults(func=do_scene_load)
 
 # Schedule management
 #--------------------
