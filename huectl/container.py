@@ -54,11 +54,7 @@ class HueCollection:
 
 	# Add a dictionary of form { id: obj }
 	def update(self, items):
-		if isinstance(items, dict):
-			ar= items.values()
-		elif isinstance(items, list):
-			ar= items
-		else:
+		if not isinstance(items, dict):
 			raise TypeError('Expected list or dict')
 
 		if not(len(items)):
@@ -66,8 +62,8 @@ class HueCollection:
 
 		rv= False
 
-		for itemobj in ar:
-			skey= str(itemobj.id)
+		for itemid, itemobj in items.items():
+			skey= str(itemid)
 			if self.item_type != type(itemobj):
 				raise TypeError(f'Expected {self.item_type}')
 
