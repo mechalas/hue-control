@@ -257,7 +257,7 @@ class HueGroup(HueContainer):
 	def add_lights(self, lights):
 		oldobj= self.lights.clone()
 
-		if self.lights.update(lights):
+		if self.lights.update(dict(map(lambda x: (x.id, x), lights))):
 			self._update_lights(oldobj)
 
 	def add_lights_byid(self, lightids):
@@ -270,7 +270,7 @@ class HueGroup(HueContainer):
 		oldobj= self.lights.clone()
 	
 		self.lights.clear()
-		if self.lights.update(lights):
+		if self.lights.update(dict(map(lambda x: (x.id, x), lights))):
 			self._update_lights(oldobj)
 
 	def set_lights_byid(self, lightids):
