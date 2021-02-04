@@ -1,5 +1,4 @@
-# The 12-Hue Color Wheel (Step 3) designed by Warren Mars. The full 24-hue
-# color-corrected wheel is something that may happen some day.
+# The 24-Hue Color Wheel designed by Warren Mars.
 #
 # http://warrenmars.com/visual_art/theory/colour_wheel/evolution/evolution.htm
 #
@@ -9,20 +8,32 @@
 
 colors= (
 	( 'ham', 'pale raspberry', 'red', 'dark red', 'maroon' ),
-	( 'pale buff', 'buff', 'tumeric', 'yellow ochre', 'milk chocolate' ),
-	( 'cream', 'butter', 'yellow', 'wasabi', 'olive' ),
-	( 'pale avacado', 'avacado', 'chartreuse', 'sage', 'oak leaf' ),
-	( 'extra pale green', 'green hellbore', 'granny smith', 'green', 'zucchini' ),
-	( 'pale variscite', 'variscite', 'crysolite', 'light emerald', 'brunswick green' ),
-	( 'extra pale cyan', 'blue sprice light', 'cyan', 'dark cyan', 'pthalo green' ),
-	( 'powder blue', 'light azure', 'azure', 'cobalt blue', 'prussian blue' ),
-	( 'forget-me-not', 'cornflower', 'blue', 'ultramarine', 'navy' ),
+	( 'parmesan cheese', 'peanut butter', 'orange', 'brown', 'dark brown' ),
+	( 'buff', 'turmeric', 'yellow ochre', 'tan', 'milk chocolate' ),
+	( 'wheat ear', 'yellow cheese', 'olive oil', 'cane toad', 'cow dung' ),
+	( 'butter', 'yellow', 'wasabi', 'olive', 'olive drab' ),
+	( 'champagne', 'golden delicious', 'green grape', 'light kelp', 'dark kelp' ),
+	( 'avacado', 'chartreuse', 'celery', 'sage', 'oak leaf' ),
+	( 'green cabbage', 'green pea', 'basil', 'spinach', 'rhubarb leaf' ),
+	( 'green hellebore', 'granny smith', 'green', 'green grass', 'zucchini' ),
+	( 'celadon', 'chayote', 'clover', 'shaded fern', 'cucumber' ),
+	( 'variscite', 'crysolite', 'light emerald', 'emerald', 'brunswick green' ),
+	( 'blue agave', 'verdigris', 'shallow sea green', 'broccoli', 'malachite' ),
+	( 'blue sprice light', 'cyan', 'dark cyan', 'blue spruce dark', 'pthalo green' ),
+	( 'uranus', 'turquoise', 'blue topaz', 'sea green', 'dark sea green' ),
+	( 'powder blue', 'light azure', 'dark azure', 'cobalt blue', 'prussian blue' ),
+	( 'pale sky blue', 'sky blue', 'delphinium blue', 'royal blue', 'dark royal blue' ),
+	( 'forget-me-not', 'cornflower', 'light blue', 'blue', 'dark blue' ),
+	( 'rose de france', 'lavender', 'dark lavender', 'han purple', 'dioxazine' ),
 	( 'mauve', 'kunzite', 'violet', 'dark violet', 'spectral violet' ),
-	( 'light musk', 'musk', 'magenta', 'dark magenta', 'purple' ),
-	( 'light pink', 'pink', 'dark pink', 'prickly pear', 'elderberry' )
+	( 'lilac', 'rose of sharon', 'purple daisy', 'aniline', 'amethyst' ),
+	( 'musk', 'magenta', 'dark magenta', 'light purple', 'purple' ),
+	( 'dog rose', 'purple loosestrife', 'shocking pink', 'purple bougainvillea', 'purple bean' ),
+	( 'light pink', 'pink', 'dark pink', 'prickly pear', 'elderberry' ),
+	( 'baby pink', 'pink hydrangea', 'dragon fruit', 'chinese strawberry', 'red plum' )
 )
 
-hueangles= (0, 20, 50, 70, 100, 140, 170, 190, 220, 260, 290, 310, 340, 360)
+hueangles= (0, 30, 42, 50, 60, 65, 76, 98, 120, 147, 160, 172, 180, 190, 200, 214, 240, 267, 280, 290, 300, 310, 320, 333, 360)
 
 # colors are arranged at:
 #   S=0.25,B=1.0
@@ -31,7 +42,7 @@ hueangles= (0, 20, 50, 70, 100, 140, 170, 190, 220, 260, 290, 310, 340, 360)
 #   S=1.0, B=0.66
 #   S=1.0, B=0.33
 
-pts=((0.25,1.0),(0.50,1.0),(1.0,1.0),(1.0,0.66),(1.0,0.33))
+pts=((0.22,1.0),(0.50,1.0),(1.0,1.0),(1.0,0.65),(1.0,0.35))
 
 def colorname(*args):
 	if len(args) == 1:
