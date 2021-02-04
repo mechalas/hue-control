@@ -46,11 +46,11 @@ class HueCollection:
 
 		return idlist
 
-	def items(unresolved=False):
+	def items(self, unresolved=False):
 		d= dict(self.resolved_items)
 		if unresolved:
 			d.update(dict.fromkeys(self.unresolved_item_ids, None))
-		return d
+		return d.items()
 
 	# Add a dictionary of form { id: obj }
 	def update(self, items):
