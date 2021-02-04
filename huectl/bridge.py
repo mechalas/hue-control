@@ -317,14 +317,11 @@ class HueBridge:
 		if raw:
 			return data
 
-		kwargs= dict()
-		if lights is not None:
-			kwargs['lights']= lights
-
 		scenes= dict()
 		for sceneid, scenedata in data.items():
-			scene= HueScene(sceneid=sceneid, bridge=self)
-			scene.load(scenedata, **kwargs)
+			scene= HueScene.parse_definition(scenedata, bridge=self, sceneid=sceneid)
+			if lights is not None:
+				scene.lights.resolve_items(lights)
 			scenes[sceneid]= scene
 
 		return scenes
@@ -334,12 +331,9 @@ class HueBridge:
 		if raw:
 			return data
 
-		kwargs= dict()
+		scene= HueScene.parse_definition(data, bridge=self, sceneid=sceneid)
 		if lights is not None:
-			kwargs['lights']= lights
-		
-		scene= HueScene(sceneid=sceneid, bridge=self)
-		scene.load(data, **kwargs)
+			scene.lights.resolve_items(lights)
 
 		return scene
 
