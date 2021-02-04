@@ -28,28 +28,14 @@ class HueScene(HueContainer):
 				raise TypeError('sceneid: Expected str, not '+str(type(sceneid)))
 			scene.id= sceneid
 
-		scene.name= d['name']
-		if 'owner' in d:
-			scene.owner= d['owner']
+		for attr in ('name', 'owner', 'type', 'group', 'recycle', 'locked',
+			'appdata', 'picture', 'version', 'image'):
+			if attr in d:
+				scene.__dict__[attr]= d[attr]
 
-		if 'type' in d:
-			scene.type= d['type']
-
-		if 'group' in d:
-			scene.group= d['group']
-
-		scene.recycle= d['recycle']
-		scene.locked= d['locked']
-		scene.appdata= d['appdata']
-		if 'picture' in d:
-			scene.picture= d['picture']
 		if 'lastupdated' in d:
 			if d['lastupdated'] is not None:
 				scene.lastupdated= HueDateTime(d['lastupdated'])
-		scene.version= d['version']
-
-		if 'image' in d:
-			scene.image= d['image']
 
 		# Add a 'lights' container
 		scene.lights.update_fromkeys(d['lights'])
