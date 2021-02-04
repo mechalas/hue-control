@@ -23,6 +23,7 @@ Both can be installed using pip.
 
 * Hue bridge discovery
 * Hue bridge/account setup (there may be a bug in here)
+* Color conversions (xy, hs, temperature, rgb)
 * Listing most major bridge objects, including:
   * Configuration (and whitelist)
   * Lights
@@ -32,6 +33,9 @@ Both can be installed using pip.
   * Sensors
   * Rules
   * Resourcelinks (raw only)
+* Group functions:
+  * Rename
+  * Change light memberships
 * Light functions:
   * Power on/off 
   * Change brightness, color (and color mode), dynamic effect, alert effect
@@ -40,6 +44,7 @@ Both can be installed using pip.
   * Delete
   * Recall/play
   * Rename
+  * Dump scene def to INI 
 
 Output is messy as many objects the __str__ overloads which are currently printing class decorators and other verbosity that is not human-friendly but useful for debugging and development.
 
