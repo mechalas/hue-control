@@ -137,7 +137,10 @@ class HueScene(HueContainer):
 
 		if apiver >= '1.11':
 			d['recycle']= self.recycle
-			d['appdata']= self.appdata
+			d['appdata']= {
+				self.app_data_version(),
+				self.app_data_content()
+			}
 
 		if apiver > '1.28':
 			if self.group is not None:
@@ -163,10 +166,32 @@ class HueScene(HueContainer):
 		except KeyError:
 			return None
 
-	def supports_app_data(self):
+	def application_data(self):
 		if self.bridge.api_version() >= '1.1':
-			return True
-		return False
+			return self.appdata
+		else:
+			raise APIVersion(have=self.bridge.api_version(), need='1.1')
+
+	def clear_application_data(self):
+		self.appdata= {}
+
+	def set_application_data(self, version=None, data=None):
+		if version is None and data is None:
+			return False
+
+		if not isinstance(version, int):
+			raise TypeError('version: expected int, got '+str(type(version)))
+
+		if not isinstance(data, str):
+			raise TypeError('data: expected str, got '+str(type(data)))
+
+		if len(data) > 16:
+			raise ValueError('data: max length is 16 characters')
+
+		self.appdata= {
+			'version': version,
+			'data': data
+		}
 
 	def rename(self, name):
 		if name is None:
