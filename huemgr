@@ -3,6 +3,7 @@
 from huectl.bridge import HueBridge, HueBridgeSearch
 from huectl.exception import BridgeDefined
 from huectl.group import HueGroup
+from huectl.scene import HueScene
 from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange
 from huectl.color import HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb
 from argparse import ArgumentParser
@@ -525,8 +526,7 @@ def do_scene_dump(args):
 	lights= hue.get_all_lights()
 	scene= hue.get_scene(args.id)
 
-	sdef= configparser.ConfigParser()
-	sdef['scene']= dict()
+	sdef= configparser.ConfigParser(interpolation=None, default_section='scene')
 	sdef['scene']['id']= scene.id
 	sdef['scene']['name']= scene.name
 	if scene.transitiontime is not None:
@@ -547,19 +547,12 @@ def do_scene_dump(args):
 		sdef['scene']['lightstates']= str(False)
 
 	# Is there appdata?
-	if scene.supports_app_data():
-		appdata= scene.appdata
-
-		if appdata is not None:
-			data= dict()
-			for k,v in appdata.items():
-				# We don't supported nested structures, just a simple
-				# set of key:value pairs.
-
-				if isinstance(v, (int, str, float)):
-					data[k]= str(v)
-			if len(data):
-				sdef['appdata']= data
+	try:
+		appdata= scene.application_data()
+		if len(appdata):
+			sdef['appdata']= appdata
+	except:
+		pass
 
 	sdef.write(sys.stdout)
 
@@ -574,7 +567,9 @@ def do_scene_dump(args):
 		# convenience of the write method and the ability to
 		# print comments.
 
-		sdef= configparser.ConfigParser()
+		sdef= configparser.ConfigParser(interpolation=None,
+			default_section='scene')
+
 		secname= 'light '+lightid
 		preset= None
 
@@ -594,7 +589,7 @@ def do_scene_dump(args):
 		sdef.write(sys.stdout)
 	
 def do_scene_load(args):
-	sdef= configparser.ConfigParser()
+	sdef= configparser.ConfigParser(interpolation=None)
 	hue= init_hue(args)
 
 	try:
@@ -603,8 +598,75 @@ def do_scene_load(args):
 		print(f'{args.file}: {e}')
 		exit(1)
 
-	# Turn the INI file into a scene definition
+	if args.scene_id:
+		sceneid= args.scene_id
+	else:
+		sceneid= sdef['scene']['id']
 
+	# Convert to a dictionary
+
+	d= {
+		'name': sdef['scene']['name'],
+		'recycle': sdef['scene'].getboolean('recycle')
+	}
+	if 'group' in sdef['scene']:
+		d['group']= sdef['scene']['group']
+	if 'type' in sdef['scene']:
+		d['type']= sdef['scene']['type']
+	if 'transitiontime' in sdef['scene']:
+		d['transitiontime']= sdef['scene'].getint('transitiontime')
+
+	lightstates= dict()
+	lightids= list()
+	for sec in sdef.keys():
+		if sec == 'scene':
+			continue
+		elif sec == 'appdata':
+			if 'json' in sdef[sec]:
+				d['appdata']= json.loads(sdef[sec]['json'])
+		elif sec.startswith('light '):
+			lightid= (sec.split(' '))[1]
+			lightids.append(lightid)
+			ls= dict()
+			for k in sdef[sec].keys():
+				if k in ('bri', 'ct'):
+					v= sdef[sec].getint(k)
+				elif k in ('x', 'y'):
+					v= sdef[sec].getfloat(k)
+					if 'xy' not in ls:
+						ls['xy']= list()
+					if k == 'x':
+						ls['xy'].insert(0,v)
+					else:
+						ls['xy'].append(v)
+					continue
+				elif k in ('hue', 'sat'):
+					v= sdef[sec].getfloat(k)
+				elif k == 'on':
+					v= sdef[sec].getboolean(k)
+				else:
+					v= sdef[sec][k]
+				ls[k]= v
+
+			if len(ls):
+				if 'xy' in ls:
+					if len(ls['xy']) != 2:
+						print(f'Incomplete xy color for light {lightid}')
+						exit(1)
+				lightstates[lightid]= ls
+
+	if len(lightstates):
+		d['lightstates']= lightstates
+	if len(lightids):
+		d['lights']= lightids
+
+	scene= HueScene.parse_definition(d, bridge=hue, sceneid=sceneid)
+	print(json.dumps(d, indent=4))
+
+#	for section in config.sections():
+#		d[section]= dict()
+#		for key, val in config.items(section):
+#			d[section][key]= val
 
 def do_scene_rename(args):
 	hue= init_hue(args)
@@ -899,6 +961,7 @@ def standard_args(parser, *arglist):
 	if 'pretty' in arglist:
 		parser.add_argument('-R', '--pretty', action='store_true',
 			help='Pretty-print raw response')
+
 
 #===========================================================================
 # Main program starts here
