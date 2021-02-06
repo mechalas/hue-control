@@ -5,7 +5,7 @@ from huectl.exception import BridgeDefined
 from huectl.group import HueGroup
 from huectl.scene import HueScene
 from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange
-from huectl.color import HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb
+from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb, map_range
 from argparse import ArgumentParser
 import sys
 import json
@@ -281,9 +281,9 @@ def do_light_set(args):
 
 	if args.brightness is not None:
 		if _isinc(args.brightness):
-			schange.inc_brightness(int(args.brightness))
+			schange.inc_brightness(float(args.brightness))
 		else:
-			schange.set_brightness(int(args.brightness))
+			schange.set_brightness(float(args.brightness))
 
 	if args.hue is not None:
 		if _isinc(args.hue):
@@ -293,9 +293,9 @@ def do_light_set(args):
 
 	if args.saturation is not None:
 		if _isinc(args.saturation):
-			schange.inc_sat(int(args.saturation))
+			schange.inc_sat(float(args.saturation))
 		else:
-			schange.set_sat(int(args.saturation))
+			schange.set_sat(float(args.saturation))
 
 	if args.xy is not None:
 		xy_pair= args.xy.split(',')
@@ -576,6 +576,13 @@ def do_scene_dump(args):
 		if scene.has_presets():
 			preset= scene.preset(lightid)
 			sdef[secname]= preset.asdict()
+			for k,v in sdef[secname].items():
+				if k == 'hue':
+					sdef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_hue, (0,360)))
+				elif k == 'sat':
+					sdef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_sat, (0,1)))
+				elif k == 'bri':
+					sdef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_bri, (0,1)))
 		else:
 			sdef[secname]= []
 
@@ -591,6 +598,7 @@ def do_scene_dump(args):
 def do_scene_load(args):
 	sdef= configparser.ConfigParser(interpolation=None)
 	hue= init_hue(args)
+	sceneid= None
 
 	try:
 		sdef.read_file(open(args.file))
@@ -601,7 +609,8 @@ def do_scene_load(args):
 	if args.scene_id:
 		sceneid= args.scene_id
 	else:
-		sceneid= sdef['scene']['id']
+		if 'id' in sdef['scene']:
+			sceneid= sdef['scene']['id']
 
 	# Convert to a dictionary
 
@@ -629,7 +638,9 @@ def do_scene_load(args):
 			lightids.append(lightid)
 			ls= dict()
 			for k in sdef[sec].keys():
-				if k in ('bri', 'ct'):
+				if k == 'bri':
+					v= round(map_range(sdef[sec].getfloat(k), (0,1), HueColor.range_bri))
+				elif k == 'ct':
 					v= sdef[sec].getint(k)
 				elif k in ('x', 'y'):
 					v= sdef[sec].getfloat(k)
@@ -640,8 +651,10 @@ def do_scene_load(args):
 					else:
 						ls['xy'].append(v)
 					continue
-				elif k in ('hue', 'sat'):
-					v= sdef[sec].getfloat(k)
+				elif k == 'hue':
+					v= round(map_range(sdef[sec].getfloat(k), (0,360), HueColorHSB.range_hue))
+				elif k == 'sat':
+					v= round(map_range(sdef[sec].getfloat(k), (0,1), HueColorHSB.range_sat))
 				elif k == 'on':
 					v= sdef[sec].getboolean(k)
 				else:
@@ -661,12 +674,7 @@ def do_scene_load(args):
 		d['lights']= lightids
 
 	scene= HueScene.parse_definition(d, bridge=hue, sceneid=sceneid)
-	print(json.dumps(d, indent=4))
-
-#	for section in config.sections():
-#		d[section]= dict()
-#		for key, val in config.items(section):
-#			d[section][key]= val
+	scene.save()
 
 def do_scene_rename(args):
 	hue= init_hue(args)

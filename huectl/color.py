@@ -192,13 +192,36 @@ class HueColorGamut:
 
 
 #===========================================================================
-# HueColor: A color defined by a HueColorPoint and brightness
+# HueColor: A color defined by a HueColorPoint and brightness. Colors
+#           are stored in the bridge's units and converted on demand.
 #===========================================================================
 
 class HueColor:
+	range_bri= (1, 254)
+
 	def __init__(self, *args):
 		self.pt= None
 		self.bri= 0
+
+	def brightness(self, torange=None):
+		if torange == None:
+			return self.bri
+
+		return map_range(self.bri, HueColor.range_bri, torange)
+
+# Value, RangeIn (start,end), RangeOut (start,end)
+def map_range(val, rin, rout):
+	val= rout[0] + ((rout[1]-rout[0])/(rin[1]-rin[0])) * (val-rin[0])
+	if val > rout[1]:
+		val= rout[1]
+	elif val < rout[0]:
+		val= rout[0]
+
+	return val
+
+#----------------------------------------
+# HueColorxyY: A color in the xyY space
+#----------------------------------------
 
 class HueColorxyY(HueColor):
 	def __init__(self, *args):
@@ -218,12 +241,7 @@ class HueColorxyY(HueColor):
 					if type(v) not in (int, float):
 						raise TypeError('Need int or float, not '+str(type(v)))
 
-				x, y, bri= arg0
-				if x < 0.0 or x > 1.0 or y < 0.0 or y > 1.0 or bri < 0 or bri > 254:
-					raise ValueError
-
-				#self.bri= bri/254.0
-				self.bri= bri
+				x, y, self.bri= arg0
 
 				self.pt= HueColorPointxy(x, y)
 
@@ -249,38 +267,41 @@ class HueColorxyY(HueColor):
 				if type(v) not in (int, float):
 					raise TypeError
 
-			x, y, bri= args
-			if x < 0.0 or x > 1.0 or y < 0.0 or y > 1.0 or bri < 0 or bri > 254:
-				raise ValueError
+			x, y, self.bri= args
 
-			self.bri= bri
 			self.pt= HueColorPointxy(x, y)
-
-	def __getattr__(self, item):
-		if item == 'x':
-			return self.pt.x
-		elif item == 'y':
-			return self.pt.y
-		elif item == 'Y':
-			return self.bri
-
-	def __dict__(self):
-		return { 'x': self.x, 'y': self.y, 'Y': self.Y }
 
 	def __str__(self):
 		return '<HueColorxyY> x={:.3f}, y={:.3f}, Y={:.3f} ({:s})'.format(
-			self.x, self.y, self.Y, self.name())
+			self.x(), self.y(), self.brightness(torange=(0,1)), self.name())
+
+	def x(self):
+		return self.pt.x
+	
+	def y(self):
+		return self.pt.y
 
 	def name(self):
 		return colorname(self.hsb())
 
 	def rgb(self):
-		return xyY_to_rgb((self.pt.x, self.pt.y, self.bri))
+		return xyY_to_rgb((self.x(), self.y(), self.brightness(torange=(0,1))))
 
 	def hsb(self):
-		return xyY_to_hsb((self.pt.x, self.pt.y, self.bri))
+		inh, ins, inb= xyY_to_hsb((self.x(), self.y(), 
+			self.brightness(torange=(0,1))))
+		return (map_range(inh, (0,1), HueColorHSB.range_hue),
+			map_range(ins, (0,1), HueColorHSB.range_sat),
+			map_range(inb, (0,1), HueColor.range_bri))
+
+#----------------------------------------
+# HueColorHSB: A color represented by hue, saturation and lightness.
+#----------------------------------------
 
 class HueColorHSB(HueColor):
+	range_hue= (0, 65535)
+	range_sat= (0, 254)
+
 	def __init__(self, *args):
 		super().__init__()
 
@@ -299,67 +320,49 @@ class HueColorHSB(HueColor):
 						raise TypeError('Need int or float, not'+str(type(v)))
 
 				h, s, self.bri= arg0
-				s= min(1,max(s,0))
-				self.bri= min(1,max(self.bri,0))
-				if h< 0.0:
-					raise ValueError(h)
 
 				self.pt= HueColorPointHS(h, s)
 
 			else:
-				raise TypeError(arg0)
+				raise TypeError('Need HueColorHSB, tuple, or list')
 	
-		elif len(args) == 2:
-			pt, b= args
-
-			if not isinstance(pt, HueColorPointHS):
-				raise TypeError(pt)
-
-			if type(b) not in (int, float):
-				raise TypeError(b)
-			b= min(1,max(0,b))
-
-			self.pt= HueColorPointHS(pt)
-			self.bri= b
-
 		elif len(args) == 3:
-			for v in args:
-				if type(v) not in (int, float):
-					raise TypeError(v)
-
 			h, s, self.bri= args
-			s= min(1,max(0,s))
-			self.bri= min(1,max(0,self.bri))
-			if h< 0.0:
-				raise ValueError(h)
 
 			self.pt= HueColorPointHS(h, s)
 
 		else:
 			raise ValueError
 
-	def __getattr__(self, item):
-		if item == 'h' or item == 'hue':
-			return self.pt.h
-		elif item == 's' or item == 'sat':
-			return self.pt.s
-		elif item == 'b':
-			return self.bri
-
-	def __dict__(self):
-		return { 'hue': self.h, 'sat': self.s, 'bri': self.bri }
+	def asdict(self):
+		return { 'hue': self.hue(), 'sat': self.sat(), 'bri': self.brightness() }
 
 	def __str__(self):
-		return '<HueColorHSB> hue={:.3f}, sat={:.3f}, bri={:.3f} ({:s})'.format(self.hue, self.sat, self.bri, self.name())
+		return '<HueColorHSB> hue={:.3f}, sat={:.3f}, bri={:.3f} ({:s})'.format(self.hue(torange=(0,360)), self.sat(torange=(0,1)), self.brightness(torange=(0,1)), self.name())
+
+	def hue(self, torange=None):
+		if not torange:
+			return self.pt.h
+		
+		return map_range(self.pt.h, HueColorHSB.range_hue, torange)
+
+	def sat(self, torange=None):
+		if not torange:
+			return self.pt.s
+
+		return map_range(self.pt.s, HueColorHSB.range_sat, torange)
 
 	def name(self):
-		return colorname(self.hue, self.sat, self.bri)
+		return colorname(self.hue(torange=(0,360)), self.sat(torange=(0,1)),
+			self.brightness(torange=(0,1)))
 
 	def rgb(self):
-		return hsb_to_rgb(self.hue, self.sat, self.bri)
+		return hsb_to_rgb(self.hue(torange=(0,360)), self.sat(torange=(0,1)),
+			self.brightness(torange=(0,1)))
 	
 	def xyY(self):
-		return hsb_to_xyY((self.hue, self.sat, self.bri))
+		return hsb_to_xyY((self.hue(torange=(0,360)), self.sat(torange=(0,1)),
+			self.brightness(torange=(0,1))))
 
 	def cct(self):
 		xyY= self.xyY()
@@ -390,6 +393,9 @@ class HueColorTemp:
 	def kelvin(self):
 		return round(mired_to_kelvin(self.ct))
 
+	def mired(self):
+		return self.ct
+
 	def xy(self):
 		return cct_to_xy(self.kelvin())
 
@@ -401,8 +407,10 @@ class HueColorTemp:
 		return self.xyY().rgb()
 
 	def hsb(self):
-		hsb= rgb_to_hsb(self.rgb())
-		return HueColorHSB(*hsb)
+		inh, ins, inb= rgb_to_hsb(self.rgb())
+		return HueColorHSB((map_range(inh, (0, 360), HueColorHSB.range_hue),
+			map_range(ins, (0, 1), HueColorHSB.range_sat),
+			map_range(inb, (0, 1), HueColor.range_bri)))
 
 #===========================================================================
 # Utility functions
