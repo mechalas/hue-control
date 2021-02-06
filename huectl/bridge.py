@@ -20,6 +20,26 @@ class HueBridgeConfiguration:
 		self.apiversion= HueApiVersion(data['apiversion'])
 		self.name= data['name']
 
+		# Data that's returned for all/unknown users
+
+		self.modelid= data['modelid']
+		self.mac= data['mac']
+		self.factorynew= data['factorynew']
+		self.bridgeid= data['bridgeid']
+		self.replacesbridgeid= data['replacesbridgeid']
+		self.swversion= data['swversion']
+
+		# If we are an unknown user, we won't be shown the
+		# whitelist. This is our cue not to not look for
+		# additional config items.
+
+		if 'whitelist' in data:
+			self.userlist= HueBridgeUserlist(data['whitelist'])
+		else:
+			return
+			
+		# Data that's only returned for whitelisted users
+
 		if self.apiversion < HueApiVersion('1.20'):
 			if 'swupdate' in data:
 				self.swupdate= data['swupdate']
@@ -27,9 +47,8 @@ class HueBridgeConfiguration:
 			if 'swupdate2' in data:
 				self.swupdate= data['swupdate2']
 
-		self.userlist= HueBridgeUserlist(data['whitelist'])
+
 		self.portalstate= data['portalstate']
-		self.swversion= data['swversion']
 
 		if self.apiversion < HueApiVersion('1.21'):
 			self.proxyaddress= data['proxyaddress']
@@ -37,23 +56,25 @@ class HueBridgeConfiguration:
 
 		self.linkbutton= data['linkbutton']
 		self.ipaddress= data['ipaddress']
-		self.mac= data['mac']
 		self.netmask= data['netmask']
 		self.gateway= data['gateway']
 		self.dhcp= data['dhcp']
-		self.UTC= HueDateTime(data['UTC'])
-		self.localtime= HueDateTime(data['localtime'])
+		try:
+			self.UTC= HueDateTime(data['UTC'])
+		except:
+			pass
+		if data['localtime'] != 'none':
+			self.localtime= HueDateTime(data['localtime'])
+		else:
+			self.localtime= None
 		self.timezone= data['timezone']
-		self.modelid= data['modelid']
-		self.datastoreversion= data['datastoreversion']
+		if 'datastoreversion' in data:
+			self.datastoreversion= data['datastoreversion']
 		self.zigbeechannel= data['zigbeechannel']
-		self.portalservices= data['portalservices']
-		self.portalconnection= data['portalconnection']
-		self.bridgeid= data['bridgeid']
-		self.replacesbridgeid= data['replacesbridgeid']
-		self.factorynew= data['factorynew']
-		self.starterkitid= data['starterkitid']
-		self.internetservices= data['internetservices']
+
+		for attr in ('portalservices', 'portalconnection', 'starterkitid', 'internetservices'):
+			if attr in data:
+				self.__dict__[attr]= data[attr]
 
 class HueBridgeUser:
 	def __init__(self, user_id, data):
@@ -476,13 +497,13 @@ class HueBridge:
 
 		return self.config
 
-	def create_user(self, registration=True, appname='Python', device='CLI', client_key=None):
+	def create_user(self, appname='Python', device='CLI', client_key=None):
 		data= { 
 			'devicetype': '#'.join([appname, device])
 		}
 		if client_key is not None:
 			data['generate clientkey']= client_key
-		response= self.call(None, data=data)
+		response= self.call(None, registration=True, data=data)
 
 		item= response[0]
 		if 'success' in item:
