@@ -373,6 +373,32 @@ class HueBridge:
 
 		return True
 
+	def create_scene(self, scenedef, sceneid=None):
+		apiver= self.api_version()
+		uri= '/scenes'
+
+		if not isinstance(scenedef, dict):
+			raise TypeError('scenedef: expected dict, not '+str(type(scenedef)))
+
+		# API version checking
+
+		# Version 1 scenes are deprecated. We won't support API versions
+		# < 1.11
+		if apiver < '1.11':
+			raise huectl.exception.InvalidOperation('bridge API '+apiver, 'create_scene')
+
+		# Lightstats available in 1.29
+		if 'lightstates' in scenedef and apiver < '1.29':
+			raise huectl.exception.APIVersion(need='1.29', have=apiver)
+
+		if sceneid is not None:
+			uri= f'/scenes/{sceneid}'
+
+		print(f'POST {uri}')
+		print(scenedef)
+		return
+
+
 	# Rules
 	#--------------------
 

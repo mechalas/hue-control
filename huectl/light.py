@@ -1,6 +1,6 @@
 import huectl.bridge
 from huectl.exception import InvalidOperation
-from huectl.color import HueColorxyY, HueColorHSB, HueColorPointxy, HueColorPointHS, HueColorGamut, HueColorTemp, kelvin_to_mired
+from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorPointxy, HueColorPointHS, HueColorGamut, HueColorTemp, kelvin_to_mired, map_range
 import json
 
 class HueAlertEffect:
@@ -172,9 +172,9 @@ class HueState:
 
 	def color(self):
 		if self.colormode == HueColorMode.xyY:
-			return HueColorxyY(self.xy, self.bri/254.0)
+			return HueColorxyY(self.xy.x, self.xy.y, self.bri)
 		elif self.colormode == HueColorMode.HSB:
-			return HueColorHSB(self.hs, self.bri/254.0)
+			return HueColorHSB(self.hs.h, self.hs.s, self.bri)
 		else:
 			return None
 
@@ -214,8 +214,7 @@ class HueLightPreset(HueState):
 			self.colormode= HueColorMode.xyY
 		elif 'hue' in obj:
 			self.colormode= HueColorMode.HSB
-			self.hs= HueColorPointHS(obj['hue']*360.0/65535.0,
-				obj['sat']/255.0)
+			self.hs= HueColorPointHS(obj['hue'], obj['sat'])
 
 	def __str__(self):
 		on= 'Off'
@@ -226,7 +225,9 @@ class HueLightPreset(HueState):
 		if not self.on:
 			return s
 
-		s+= f' bri={self.bri}'
+		print(self.bri)
+		if self.bri is not None:
+			s+= ' bri={:.4f}'.format(map_range(self.bri, HueColor.range_bri, (0,1)))
 
 		if self.colormode == HueColorMode.CT:
 			ct= self.colortemp()
@@ -255,7 +256,7 @@ class HueLightPreset(HueState):
 			d['hue']= round(self.hs.hue,4)
 			d['sat']= round(self.hs.sat,4)
 		elif self.ct is not None:
-			d['ct']= int(self.ct.kelvin())
+			d['ct']= self.ct.ct
 		elif self.xy is not None:
 			d['x']= round(self.xy.x,4)
 			d['y']= round(self.xy.y,4)
@@ -283,8 +284,7 @@ class HueLightState(HueState):
 			self.bri= obj['bri']
 
 		if 'hue' in obj:
-			self.hs= HueColorPointHS(obj['hue']*360.0/65535.0,
-				obj['sat']/254.0)
+			self.hs= HueColorPointHS(obj['hue'], obj['sat'])
 		if 'xy' in obj:
 			self.xy= HueColorPointxy(obj['xy'])
 
@@ -324,7 +324,12 @@ class HueLightState(HueState):
 
 
 #============================================================================
-# HueLightStateChange: A light state change requested by the user
+# HueLightStateChange: A light state change requested by the user.
+#                      Hue/Sat/Bri values are in user-convenient ranges
+#                      rather than "bridge" units:
+#                        0 <= Hue <= 360
+#                        0 <= Sat <= 1
+#                        0 <= Bri <= 1
 #============================================================================
 
 class HueLightStateChange:
@@ -345,18 +350,19 @@ class HueLightStateChange:
 		self.change['on']= state
 		
 	def set_brightness(self, bri):
-		if bri < 1 or bri > 254:
+		if bri < 0 or bri > 1:
 			raise ValueError(f'Brightness {bri} out of range')
 
-		self.change['bri']= bri
+		self.change['bri']= round(map_range(bri, (0,1), HueColor.range_bri))
 		if 'bri_inc' in self.change:
 			del self.change['bri_inc']
 
 	def inc_brightness(self, bri):
-		if bri < -254 or bri > 254:
+		if bri < -1 or bri > 1:
 			raise ValueError(f'Brightness delta {bri} out of range')
 
-		self.change['bri_inc']= bri
+		bmax= HueColor.range_bri[1]
+		self.change['bri_inc']= round(map_range(bri, (-1,1), (-bmax,bmax)))
 		if 'bri' in self.change:
 			del self.change['bri']
 
@@ -378,7 +384,7 @@ class HueLightStateChange:
 			del self.change['ct_inc']
 
 	def inc_ct(self, ct):
-		if ct < -65534 or ct > 65534:
+		if ct < -347 or ct > 347:
 			raise ValueError(f'Mired color temperature delta {ct} out of range')
 
 		self.change['ct_inc']= ct
@@ -421,7 +427,7 @@ class HueLightStateChange:
 		if hue < 0 or hue > 360:
 			raise ValueError(f'Hue {hue} out of range')
 
-		self.change['hue']= round(hue*65535/360)
+		self.change['hue']= round(map_range(hue, (0,360), HueColorHSB.range_hue))
 		if 'hue_inc' in self.change:
 			del self.change['hue_inc']
 
@@ -429,7 +435,8 @@ class HueLightStateChange:
 		if hue < -360 or hue > 360:
 			raise ValueError(f'Hue {hue} out of range')
 
-		self.change['hue_inc']= round(hue*65534/360)
+		hmax= HueColorHSB.rand_hue[1]
+		self.change['hue_inc']= round(map_range(hue, (-360,360), (-hmax,hmax)))
 		if 'hue' in self.change:
 			del self.change['hue']
 
@@ -437,15 +444,16 @@ class HueLightStateChange:
 		if sat < 0 or sat > 254:
 			raise ValueError(f'Saturation {sat} out of range')
 
-		self.change['sat']= sat
+		self.change['sat']= round(map_range(sat, (0,1), HueColorHSB.range_sat))
 		if 'sat_inc' in self.change:
 			del self.change['sat_inc']
 
 	def inc_sat(self, sat):
-		if sat < -254 or sat > 254:
+		if sat < -1 or sat > 1:
 			raise ValueError(f'Saturation {sat} out of range')
 
-		self.change['sat_inc']= sat
+		smax= HueColorHSB.range_sat[1]
+		self.change['sat_inc']= round(map_range(sat, (-1,1), (-smax,smax)))
 		if 'sat' in self.change:
 			del self.change['sat']
 
@@ -461,7 +469,7 @@ class HueLightStateChange:
 
 		self.change['effect']= effect
 
-	def data(self):
+	def asdict(self):
 		return self.change
 
 	def __str__(self):

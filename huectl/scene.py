@@ -97,35 +97,38 @@ class HueScene(HueContainer):
 
 		return f'<HueScene> {self.id} {self.name}, {self.type},{group} lights {slights}'
 
-	def asdict(self, apiver=None):
+	def asdict(self, apiver=None, tobridge=False):
 		if apiver is None:
 			apiver= self.bridge.api_version()
 
 		d= {
-			'id': self.id,
 			'name': self.name
 		}
+		if self.id is not None:
+			d['id']= self.id,
+
 		if self.transitiontime is not None:
 			d['transitiontime']= self.transitiontime
 
 		if apiver >= '1.11':
-			d['recycle']= self.recycle
-			d['appdata']= {
-				self.app_data_version(),
-				self.app_data_content()
-			}
+			if self.recycle is not None:
+				d['recycle']= self.recycle
+			appdata= self.application_data()
+			if len(appdata):
+				d['appdata']= self.application_data()
 
 		if apiver > '1.28':
 			if self.group is not None:
 				d['group']= self.group
 			d['type']= self.type
 
-		if self.has_presets():
+		d['lights']= self.lights.keys(unresolved=True)
+		if self.has_presets() and apiver >= '1.29':
 			ls= d['lightstates']= dict()
-			for light in self.lights.values(unresolved=True):
-				ls[light.id]= self.preset(light.id).asdict()
-		else:
-			d['lights']= self.lights.keys(unresolved=True)
+			for lightid, lightstate in self.lightstates.items(unresolved=True):
+				ls[lightid]= lightstate.asdict()
+
+		return d
 
 	def light(self, lightid):
 		return self.lights.item(lightid)
@@ -183,4 +186,35 @@ class HueScene(HueContainer):
 			raise ValueError(f'Max nane length is {maxlen} characters')
 
 		self.bridge.modify_scene(self.id, name=name)
+
+	#----------------------------------------
+	# Save the scene to the bridge. If we have a sceneid, we are doing an
+	# update so send it along. Otherwise, we are asking for a new scene.
+	#----------------------------------------
+
+	def save(self):
+		kwargs= dict()
+		newscene= True
+
+		if self.id is not None:
+			# We have a sceneid, but it could have been supplied by the
+			# user, so we need to check if we're doing a new scene or
+			# replacing an existing one.
+
+			print(self.id)
+			try:
+				s= self.bridge.get_scene(self.id)
+				newscene= False
+			except huectl.exception.ResourceUnavailable:
+				# This scene id doesn't exist
+				pass
+
+			print(newscene)
+			kwargs['sceneid']= self.id
+
+		if newscene:
+			self.bridge.create_scene(self.asdict(tobridge=True), sceneid=self.id)
+		else:
+			pass
+#		self.bridge.save_scene(self.asdict(), **kwargs)
 
