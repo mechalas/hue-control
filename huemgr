@@ -362,8 +362,8 @@ def do_light_power(args):
 		state=False
 	else:
 		state=True
-		if args.on is not None:
-			schange.set_brightness(args.on)
+		if args.brightness is not None:
+			schange.set_brightness(args.brightness)
 
 	schange.set_power(state)
 
@@ -1084,10 +1084,10 @@ parser_light_pwr.add_argument('-a', '--all',
 parser_light_pwr.add_argument('-t', '--transition-time', type=int,
 	help='Set transition time in 100ms (e.g. 5=500ms)')
 group_ex= parser_light_pwr.add_mutually_exclusive_group()
-group_ex.add_argument('-O', '--on', nargs='?', type=float, 
-	help='Turn lights on to the previous brightness level, or an optional brightness level. This option (without an argument) is the default.')
+group_ex.add_argument('-B', '--brightness', nargs='?', type=float, 
+	help='Turn lights on to the given brightness level.')
 group_ex.add_argument('-X', '--off', action='store_true',
-	help='Turn lights off')
+	help='Turn lights off instead of on')
 parser_light_pwr.add_argument('id', nargs='*', help='Light IDs')
 parser_light_pwr.set_defaults(func=do_light_power)
 
