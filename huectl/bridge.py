@@ -1,9 +1,11 @@
-import urllib.request
+import urllib3
+import requests
 import json
 import ssdp
 import asyncio
 import huectl.exception
 import socket
+import ssl
 import xml.etree.ElementTree as ET
 from huectl.light import HueLight
 from huectl.group import HueGroup
@@ -128,6 +130,8 @@ class HueBridge:
 		self.user_id= None
 		self.address= address
 		self.config= None
+		self.proto= None
+		self.request_defaults= dict()
 
 		if 'user_id' in kwargs:
 			self.set_user_id(kwargs['user_id'])
@@ -144,13 +148,26 @@ class HueBridge:
 	# High level functions
 	#------------------------------------------------------------
 
+	# Return the serial number
 	def serial_number(self):
 		self._load_config()
 		return self.config.mac.replace(':', '')
 
+	# Return the whitelist
 	def userlist(self):
 		self._load_config()
 		return self.config.userlist
+
+	# Return supported timezones
+	def timezones(self):
+		if self.api_version() > '1.15':
+			return self.call(f'info/timezones')
+		else:
+			return self.call(f'capabilities/timezones')
+
+	# Name/rename the bridge
+	def rename(self, newname):
+		self.modify_configuration(name=newname)
 
 	def recall_scene(self, sceneid):
 		# Recalling a scene is done via the "set group state"
@@ -497,6 +514,62 @@ class HueBridge:
 
 		return self.config
 
+	def modify_configuration(self, **kwargs):
+		attrs= dict(**kwargs)
+		apiver= self.api_version()
+
+		data= dict()
+
+		for k,v in attrs.items():
+			if k == 'proxyport':
+				if not isinstance(v, int):
+					raise TypeError(f'{k}: expected int not '+str(type(v)))
+				if v < 0 or v > 65535:
+					raise ValueError(f'{k}: must be between 0 and 65535')
+
+			elif k == 'name':
+				if not isinstance(v, str):
+					raise TypeError(f'{k}: expected str not '+str(type(v)))
+				if len(v) < 4 or len(v) > 16:
+					raise ValueError(f'{k}: must be between 4 and 16 characters')
+
+			elif k == 'swupdate':
+				raise NotImplemented(k)
+
+			elif k == 'proxyaddress':
+				if not isinstance(v, str):
+					raise TypeError(f'{k}: expected str not '+str(type(v)))
+				if len(v) < 0 or len(v) > 40:
+					raise ValueError(f'{k}: must be between 0 and 40 characters')
+			elif k == 'linkbutton':
+				raise NotImplemented
+
+			elif k in('dhcp', 'touchlink'):
+				if not isinstance(v, (bool, int)):
+					raise TypeError(f'{k}: expected bool or int not '+str(type(v)))
+				v= bool(v)
+
+			elif k == 'timezone':
+				if not isinstance(v, str):
+					raise TypeError(f'{k}: expected str not '+str(type(v)))
+
+				if v not in self.timezones():
+					raise ValueError('{k}: not a known timezone')
+
+			elif k in ('ipaddress', 'netmask', 'gateway', 'UTC'):
+				if not isinstance(v, str):
+					raise TypeError(f'{k}: expected str not '+str(type(v)))
+
+			elif k == 'zigbeechannel':
+				if not isinstance(v, int):
+					raise TypeError(f'{k}: expected int not '+str(type(v)))
+				if v not in (11,15,20,25):
+					raise ValueError(f'{k}: must be one of: 11, 15, 20, 25')
+
+			data[k]= v
+
+		response= self.call('config', method='PUT', data=data)
+
 	def create_user(self, appname='Python', device='CLI', client_key=None):
 		data= { 
 			'devicetype': '#'.join([appname, device])
@@ -532,30 +605,53 @@ class HueBridge:
 
 		raise NotImplementedError
 
+	# Internal calls
+	#--------------------
+
+	def determine_protocol(self):
+		urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+		try:
+			response= requests.request('HEAD', f'https://{self.address}/',
+				verify=False)
+			self.proto= 'https'
+			self.request_defaults['verify']= False
+			return
+		except:
+			pass
+
+		self.proto= 'http'
+
 	# Raw HTTP calls
 	#--------------------
 
 	def call(self, endpoint, registration=False, method='GET', data=None, raw=False):
+		# First, see if the bridge will do TLS. If so, remember that. If
+		# not, fall back to HTTP.
+		if self.proto is None:
+			self.determine_protocol()
+
+		defaults= self.request_defaults
+
 		if registration:
 			# It's a registration call
-			url= f'http://{self.address}/api'
+			url= f'{self.proto}://{self.address}/api'
 			method= 'POST'
 		else:
 			if endpoint is None:
-				url= f'http://{self.address}/api/{self.user_id}'
+				url= f'{self.proto}://{self.address}/api/{self.user_id}'
 			else:
-				url= f'http://{self.address}/api/{self.user_id}/{endpoint}'
+				url= f'{self.proto}://{self.address}/api/{self.user_id}/{endpoint}'
 
 		if data is None:
-			request= urllib.request.Request(url=url, method=method)
+			response= requests.request(method, url, **defaults)
 		else:
-			request= urllib.request.Request(url=url, data=bytes(json.dumps(data), 'utf-8'), method=method)
-		response= urllib.request.urlopen(request)
+			response= requests.request(method, url, data=bytes(json.dumps(data), 'utf-8'), **defaults)
 
-		if response.status != 200:
+		if response.status_code != 200:
 			raise huectl.exception.BadHTTPResponse(url)
 
-		reply= response.read().decode('UTF-8')
+		reply= response.text
 		if raw:
 			return reply
 
