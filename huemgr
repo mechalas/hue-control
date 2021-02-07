@@ -845,6 +845,11 @@ def do_bridge_add(args):
 			print(e)
 			print('User registration failed')
 			exit(1)
+
+		hue.set_user_id(user_id)
+		hue.get_configuration()
+
+		serial= hue.serial_number()
 	else:
 		user_id= args.user_id[0]
 
@@ -858,8 +863,18 @@ def do_bridge_add(args):
 		'serial': serial,
 		'overwrite': True
 	}
+
 	if 'name' in args:
-		kwargs['name']= args.name
+		# If the new name is rejected, print a warning but still
+		# add our bridge definition to the config file (minus the
+		# illegal name).
+
+		try:
+			hue.rename(args.name)
+			kwargs['name']= args.name
+		except Exception as e:
+			print(e)
+
 	elif hue is not None:
 		name= hue.name
 
@@ -1069,7 +1084,7 @@ parser_light_pwr.add_argument('-a', '--all',
 parser_light_pwr.add_argument('-t', '--transition-time', type=int,
 	help='Set transition time in 100ms (e.g. 5=500ms)')
 group_ex= parser_light_pwr.add_mutually_exclusive_group()
-group_ex.add_argument('-O', '--on', nargs='?', type=int, 
+group_ex.add_argument('-O', '--on', nargs='?', type=float, 
 	help='Turn lights on to the previous brightness level, or an optional brightness level. This option (without an argument) is the default.')
 group_ex.add_argument('-X', '--off', action='store_true',
 	help='Turn lights off')
