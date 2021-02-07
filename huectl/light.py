@@ -435,7 +435,7 @@ class HueLightStateChange:
 		if hue < -360 or hue > 360:
 			raise ValueError(f'Hue {hue} out of range')
 
-		hmax= HueColorHSB.rand_hue[1]
+		hmax= HueColorHSB.range_hue[1]
 		self.change['hue_inc']= round(map_range(hue, (-360,360), (-hmax,hmax)))
 		if 'hue' in self.change:
 			del self.change['hue']
