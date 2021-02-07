@@ -15,6 +15,7 @@ It also provides a command-line client for managing multiple Hue bridges and the
 I've tried to keep Python dependencies to a minimum. You'll need:
 
 * isodate (for parsing ISO 8601 dates and times)
+* requests 
 * ssdp (for bridge discovery)
 
 Both can be installed using pip.
@@ -50,7 +51,7 @@ Output is messy as many objects the __str__ overloads which are currently printi
 
 ## Bugs and Issue Reports
 
-I can guarantee there are bugs. If you are thinking of filing an issue, chances are it's a little premature to do so because I am refactoring as I go along and with each new piece of the API I learn that I need to rethink what I've done before. Usually just a little, but sometimes, a whole lot. So, yeah, there are bugs. When things stabilize more, then we can talk.
+I can guarantee there are bugs.
 
 ## It would be great if this could...
 
