@@ -33,7 +33,8 @@ colors= (
 	( 'baby pink', 'pink hydrangea', 'dragon fruit', 'chinese strawberry', 'red plum' )
 )
 
-hueangles= (0, 30, 42, 50, 60, 65, 76, 98, 120, 147, 160, 172, 180, 190, 200, 214, 240, 267, 280, 290, 300, 310, 320, 333, 360)
+#hueangles= (0, 30, 42, 50, 60, 65, 76, 98, 120, 147, 160, 172, 180, 190, 200, 214, 240, 267, 280, 290, 300, 310, 320, 333, 360)
+hueangles= (0, 15, 36, 46, 55, 62.5, 68, 87, 109, 133.5, 153.5, 166, 176, 185, 195, 207, 227, 253.5, 273.5, 285, 295, 305, 315, 326.5, 346.5, 360)
 
 # colors are arranged at:
 #   S=0.25,B=1.0
@@ -65,8 +66,8 @@ def colorname(*args):
 			hueidx= i
 			break
 
-	if i >= len(colors):
-		i-= len(colors)
+	if hueidx >= len(colors):
+		hueidx-= len(colors)
 
 	# Get Euclidean distance to each variation in the hue and pick
 	# the closest one
