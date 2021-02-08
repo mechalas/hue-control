@@ -921,12 +921,12 @@ def do_color(args):
 		exit(0)
 
 	if args.from_color != 'ct':
-		if args.from_color == 'rgb' and ',' not in args.from_color:
+		if args.from_color == 'rgb' and ',' not in args.color:
 			# Is it a hex color?
 			try:
 				c= hex_to_rgb(args.from_color)
 			except:
-				print('Color must be hex code or comma-separated tripled')
+				print('Color must be hex code or comma-separated triplet')
 				exit(1)
 		else:
 			c= list(map(lambda x: float(x), args.color.split(',')))
@@ -935,11 +935,20 @@ def do_color(args):
 				exit(1)
 
 	if args.from_color == 'xyY':
+		c[2]= map_range(c[2], (0,1), HueColorHSB.range_bri)
 		color= HueColorxyY(*c)
 	elif args.from_color == 'hsb':
+		# Need to convert to bridge units
+		c[0]= map_range(c[0], (0,360), HueColorHSB.range_hue)
+		c[1]= map_range(c[1], (0,1), HueColorHSB.range_sat)
+		c[2]= map_range(c[2], (0,1), HueColor.range_bri)
 		color= HueColorHSB(*c)
 	elif args.from_color == 'rgb':
-		hsb= rgb_to_hsb(list(map(lambda x: x/255, c)))
+		hsb= list(rgb_to_hsb(list(map(lambda x: x/255, c))))
+		# Need to convert to bridge units
+		hsb[0]= map_range(hsb[0], (0,360), HueColorHSB.range_hue)
+		hsb[1]= map_range(hsb[1], (0,1), HueColorHSB.range_sat)
+		hsb[2]= map_range(hsb[2], (0,1), HueColor.range_bri)
 		color= HueColorHSB(*hsb)
 		if args.to_color == 'hsb':
 			print(color)
@@ -949,10 +958,12 @@ def do_color(args):
 
 	if args.to_color == 'xyY':
 		newcolor= color.xyY()
-		print(f"x={newcolor.x:.4f} y={newcolor.y:.4f} Y={newcolor.bri:.4f}")
+		print("x={:.4f} y={:.4f} Y={:.4f}".format(newcolor.x(),
+			newcolor.y(), newcolor.brightness()))
 	elif args.to_color == 'hsb':
 		newcolor= color.hsb()
-		print(f'hue={newcolor.hue:.4f} sat={newcolor.sat:.4f} bri={newcolor.bri:.4f}')
+		print('hue={:.4f} sat={:.4f} bri={:.4f}'.format(newcolor.hue(),
+			newcolor.sat(), newcolor.brightness()))
 	elif args.to_color == 'rgb':
 		r, g, b= list(map(lambda x: int(x*255), color.rgb()))
 		print(f'{r},{g},{b} #{r:02x}{b:02x}{g:02x}')
@@ -1264,7 +1275,7 @@ parser_color.add_argument('-f', '--from-color', choices=['xyY','hsb','rgb','ct']
 	required=True, help='System to convert from')
 parser_color.add_argument('-t', '--to-color', choices=['xyY','hsb','rgb'],
 	required=True, help='System to convert to')
-parser_color.add_argument('color', help='A color coordinate as comma-separated values. xyY are from 0 to 1, h is from 0 to 360, rgb are from 0 to 255, and ct is a color temperature in Kelvin.')
+parser_color.add_argument('color', help='A color coordinate as comma-separated values. xyY are from 0 to 1, h is from 0 to 360, sat and bri are from 0 to 1, rgb are from 0 to 255, and ct is a color temperature in Kelvin.')
 parser_color.set_defaults(func=do_color)
 
 #----------------------------------------
