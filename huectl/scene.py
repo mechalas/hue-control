@@ -105,7 +105,7 @@ class HueScene(HueContainer):
 			'name': self.name
 		}
 		if self.id is not None:
-			d['id']= self.id,
+			d['id']= self.id
 
 		if self.transitiontime is not None:
 			d['transitiontime']= self.transitiontime
@@ -209,12 +209,10 @@ class HueScene(HueContainer):
 				# This scene id doesn't exist
 				pass
 
-			print(newscene)
 			kwargs['sceneid']= self.id
 
 		if newscene:
-			self.bridge.create_scene(self.asdict(tobridge=True), sceneid=self.id)
+			self.bridge.create_scene(self.asdict(), sceneid=self.id)
 		else:
-			pass
-#		self.bridge.save_scene(self.asdict(), **kwargs)
+			self.bridge.modify_scene(self.asdict(), self.id)
 

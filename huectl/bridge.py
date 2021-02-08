@@ -388,37 +388,37 @@ class HueBridge:
 
 		raise huectl.exception.BadResponse(str(status[0]))
 
-	def modify_scene(self, sceneid, **kwargs):
-		scene_data= dict()
-		if 'name' in kwargs:
-			scene_data['name']= kwargs['name']
+	def modify_scene(self, scenedef, sceneid):
+		if not isinstance(scenedef, dict):
+			raise TypeError('scenedef: expected dict, not '+str(type(scenedef)))
 
-		rv= self.call(f'scenes/{sceneid}', method='PUT', data=scene_data)
+		if not isinstance(sceneid, str):
+			raise TypeError('sceneid: expected str, not '+str(type(scenedef)))
 
-		if not isinstance(rv, list):
-			raise huectl.exception.BadResponse(rv)
+		uri= f'/scenes/{sceneid}'
 
-		if not len(rv):
-			raise huectl.exception.BadResponse(rv)
+		self._scene_api_version_check(scenedef)
 
-		errors= []
-		for elem in rv:
-			if 'error' in elem:
-				errors.append(elem[error].keys()[0])
-
-		if len(errors):
-			raise huectl.exception.AttrsNotSet(errors)
-
-		return True
+		print(f'PUT {uri}')
+		print(scenedef)
 
 	def create_scene(self, scenedef, sceneid=None):
-		apiver= self.api_version()
 		uri= '/scenes'
 
 		if not isinstance(scenedef, dict):
 			raise TypeError('scenedef: expected dict, not '+str(type(scenedef)))
 
-		# API version checking
+		self._scene_api_version_check(scenedef)
+
+		if sceneid is not None:
+			uri= f'/scenes/{sceneid}'
+
+		print(f'POST {uri}')
+		print(scenedef)
+		return
+
+	def _scene_api_version_check(self, scenedef):
+		apiver= self.api_version()
 
 		# Version 1 scenes are deprecated. We won't support API versions
 		# < 1.11
@@ -428,14 +428,6 @@ class HueBridge:
 		# Lightstats available in 1.29
 		if 'lightstates' in scenedef and apiver < '1.29':
 			raise huectl.exception.APIVersion(need='1.29', have=apiver)
-
-		if sceneid is not None:
-			uri= f'/scenes/{sceneid}'
-
-		print(f'POST {uri}')
-		print(scenedef)
-		return
-
 
 	# Rules
 	#--------------------
