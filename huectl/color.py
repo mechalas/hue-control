@@ -375,7 +375,7 @@ class HueColorHSB(HueColor):
 # Hue bulbs use the Mired scale
 
 class HueColorTemp:
-	def __init__(self, ct, bri=1, kelvin=False):
+	def __init__(self, ct, bri=HueColor.range_bri[1], kelvin=False):
 		self.bri= bri
 
 		if type(ct) not in (float, int):
@@ -408,9 +408,11 @@ class HueColorTemp:
 
 	def hsb(self):
 		inh, ins, inb= rgb_to_hsb(self.rgb())
-		return HueColorHSB(map_range(inh, (0, 360), HueColorHSB.range_hue),
+		return HueColorHSB(
+			map_range(inh, (0, 360), HueColorHSB.range_hue),
 			map_range(ins, (0, 1), HueColorHSB.range_sat),
-			map_range(inb, (0, 1), HueColor.range_bri))
+			map_range(inb, (0, 1), HueColor.range_bri)
+		)
 
 #===========================================================================
 # Utility functions
