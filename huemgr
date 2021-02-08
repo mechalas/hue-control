@@ -962,8 +962,11 @@ def do_color(args):
 			newcolor.y(), newcolor.brightness()))
 	elif args.to_color == 'hsb':
 		newcolor= color.hsb()
-		print('hue={:.4f} sat={:.4f} bri={:.4f}'.format(newcolor.hue(),
-			newcolor.sat(), newcolor.brightness()))
+		print('hue={:.4f} sat={:.4f} bri={:.4f}'.format(
+			newcolor.hue(torange=(0,360)),
+			newcolor.sat(torange=(0,1)),
+			newcolor.brightness(torange=(0,1)))
+		)
 	elif args.to_color == 'rgb':
 		r, g, b= list(map(lambda x: int(x*255), color.rgb()))
 		print(f'{r},{g},{b} #{r:02x}{b:02x}{g:02x}')
