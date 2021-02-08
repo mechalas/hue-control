@@ -408,9 +408,9 @@ class HueColorTemp:
 
 	def hsb(self):
 		inh, ins, inb= rgb_to_hsb(self.rgb())
-		return HueColorHSB((map_range(inh, (0, 360), HueColorHSB.range_hue),
+		return HueColorHSB(map_range(inh, (0, 360), HueColorHSB.range_hue),
 			map_range(ins, (0, 1), HueColorHSB.range_sat),
-			map_range(inb, (0, 1), HueColor.range_bri)))
+			map_range(inb, (0, 1), HueColor.range_bri))
 
 #===========================================================================
 # Utility functions
