@@ -1068,7 +1068,8 @@ parser_group_rename.set_defaults(func=do_group_rename)
 parser_group_edit= subparsers.add_parser('group-lights',
 	help="Set/change a group's member lights")
 standard_args(parser_group_edit, 'bridge')
-parser_group_edit.add_argument('-g', '--groupid', help='The group to modify')
+parser_group_edit.add_argument('-g', '--groupid', 
+	required=True, help='The group to modify')
 parser_group_edit.add_argument('-a', '--add-lights', nargs='+',
 	metavar='LIGHTID', help='Add lights to the group')
 parser_group_edit.add_argument('-r', '--remove-lights', nargs='+',
