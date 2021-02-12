@@ -125,7 +125,57 @@ class HueBridgeUserlist:
 		for user in self._users.values():
 			yield user
 
+class HueScanResults():
+	def __init__(self, bridge):
+		self.bridge= bridge
+		self.active= False
+		self.lastscan= None
+		self._found= dict()
+
+	def __str__(self):
+		s= '<HueScanResults> '
+		if self.active:
+			s+= 'active'
+		else:
+			s+= 'inactive'
+
+		if len(self._found):
+			s+= ', {:d} lights'
+
+		if not self.active:
+			if self.lastscan is None:
+				s+= ', no scans'
+			else:
+				s+= f', lastscan {self.lastscan}'
+
+		return s
+
+	def __getattr__(self, key):
+		if key == 'found':
+			return self._found
+		else:
+			return self.__dict__[key]
+
+	def scan_active(self):
+		return self.active
+
+	def add_item(self, itemid, name):
+		if itemid not in self._found:
+			self._found[itemid]= name
+
+	def scan_time(self):
+		return self.lastscan
+
+#============================================================================
+# A Hue Bridge object. This defines the various low-level bridge API calls
+# as well as high-level operations for user applications.
+#============================================================================
+
 class HueBridge:
+	SearchTime= 40	# The length of time the bridge spends searching for
+					# new lights, in seconds. This is defined by the 
+					# bridge API.
+
 	def __init__(self, address, **kwargs):
 		self.user_id= None
 		self.address= address
@@ -281,6 +331,54 @@ class HueBridge:
 
 	# Lights
 	#--------------------
+
+	# Begin a search for new lights. The bridge will search for a
+	# set number of seconds (defined by the API, and reflected in 
+	# HueBridge.SearchTime)
+
+	def init_light_search(self, serial):
+		if not isinstance(serial, list):
+			raise TypeError('serial: expected list not '+str(type(serial)))
+
+		if len(serial) > 10:
+			raise ValueError('serial: maximum of 10 serial numbers per search')
+		elif len(serial):
+			searchdata= { 'deviceid': serial }
+		else:
+			searchdata= None
+
+		rv= self.call('lights', method='POST', data=searchdata)
+
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(rv)
+
+		if not len(rv):
+			raise huectl.exception.BadResponse(rv)
+
+		if 'success' not in rv[0]:
+			raise huectl.exception.BadResponse(rv)
+
+		return HueScanResults(self)
+
+	# Get lights that were discovered during the last search (see
+	# init_light_search). 
+
+	def get_new_lights(self, scanresults):
+		data= self.call('lights/new')
+
+		if not isinstance(scanresults, HueScanResults):
+			raise TypeError('scanresults: expected HueScanResults not '+str(type(scanresults)))
+
+		if 'lastscan' in data:
+			if data['lastscan'] == 'none':
+				scanresults.active= False
+			elif data['lastscan'] == 'active':
+				scanresults.active= True
+			else:
+				scanresults.active= False
+				scanresults.lastscan= HueDateTime(data['lastscan'])
+
+	# Get a specific light by its id
 
 	def get_light(self, lightid, raw=False):
 		data= self.call(f'lights/{lightid}', raw=raw)

@@ -1,6 +1,6 @@
 #! /usr/bin/python3
 
-from huectl.bridge import HueBridge, HueBridgeSearch
+from huectl.bridge import HueBridge, HueBridgeSearch, HueScanResults
 from huectl.exception import BridgeDefined
 from huectl.group import HueGroup
 from huectl.scene import HueScene
@@ -18,6 +18,7 @@ import xml.etree.ElementTree as ET
 import os.path
 import configparser
 import shutil
+import time
 
 HueAppStandardScenes= (
 	'Bright',
@@ -251,6 +252,60 @@ def do_group(args):
 #----------------------------------------------------------------------------
 # Lights
 #----------------------------------------------------------------------------
+
+def do_light_add(args):
+	hue= init_hue(args)
+	serials= list()
+
+	if 'serialnum' in args:
+		if len(args.serialnum) > 10:
+			print("Can't search for more than 10 serial numbers at once")
+			exit(1)
+		serials= args.serialnum
+
+	if args.no_scan:
+		scan= HueScanResults(hue)
+	else:
+		try:
+			scan= hue.init_light_search(serials)
+			print(f'Searching for new lights')
+		except Exception as e:
+			print(str(e))
+			print('Search failed')
+			exit(1)
+
+	# Report light status every 3 seconds. The number 3 is chosen
+	# arbitrarily.
+
+	repeat= True
+	found= set()
+	while repeat:
+		hue.get_new_lights(scan)
+
+		for lightid, name in scan.found.items():
+			newline= False
+			if lightid not in found:
+				if not newline and not args.no_scan:
+					print()
+					newline= True
+
+				found+= lightid
+				print(f'{lightid} {name}')
+
+		if scan.scan_active():
+			time.sleep(3)
+		else:
+			repeat= False
+
+		if not args.no_scan:
+			print('.', end='')
+			sys.stdout.flush()
+
+	if not args.no_scan:
+		print()
+
+	print('Found {:d} new lights'.format(len(found)))
+	exit(0)
 
 def do_light_rename(args):
 	hue= init_hue(args)
@@ -1130,6 +1185,17 @@ parser_light= subparsers.add_parser('light',
 standard_args(parser_light, 'raw', 'pretty', 'bridge')
 parser_light.add_argument('id', nargs='*', help='Light IDs')
 parser_light.set_defaults(func=do_light)
+
+# search for new lights
+
+parser_light_add= subparsers.add_parser('light-add',
+	help='Search for new lights and add them to the bridge')
+standard_args(parser_light_add, 'bridge')
+parser_light_add.add_argument('-X', '--no-scan', action='store_true',
+	help='Just report the light(s) found during hte last search without starting a new one')
+parser_light_add.add_argument('serial', nargs='*',
+	help='Optional list of serial numbers to add (maximum of 10)')
+parser_light_add.set_defaults(func=do_light_add)
 
 # light on/off
 
