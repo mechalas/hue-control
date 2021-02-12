@@ -195,15 +195,15 @@ class HueBridge:
 			'scene': sceneid
 		}
 
-		status= self.call(f'groups/{groupid}/action', method='PUT', data=data)
-		if not isinstance(status, list):
-			raise huectl.exception.BadResponse(status)
+		rv= self.call(f'groups/{groupid}/action', method='PUT', data=data)
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(rv)
 
-		if len(status) != 1:
-			raise huectl.exception.BadResponse(status)
+		if len(rv) != 1:
+			raise huectl.exception.BadResponse(rv)
 
-		if 'success' not in status:
-			raise huectl.exception.BadResponse(status)
+		if 'success' not in rv:
+			raise huectl.exception.BadResponse(rv)
 
 		return True
 
@@ -376,17 +376,17 @@ class HueBridge:
 		return scene
 
 	def delete_scene(self, sceneid):
-		status= self.call(f'scenes/{sceneid}', method='DELETE')
+		rv= self.call(f'scenes/{sceneid}', method='DELETE')
 
-		if not isinstance(status, list):
-			raise huectl.exception.BadResponse(str(status))
-		if len(status) != 1:
-			raise huectl.exception.BadResponse(str(status))
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(str(rv))
+		if len(rv) != 1:
+			raise huectl.exception.BadResponse(str(rv))
 
-		if 'success' in status[0]:
+		if 'success' in rv[0]:
 			return True
 
-		raise huectl.exception.BadResponse(str(status[0]))
+		raise huectl.exception.BadResponse(str(rv[0]))
 
 	def modify_scene(self, scenedef, sceneid):
 		if not isinstance(scenedef, dict):
@@ -399,8 +399,16 @@ class HueBridge:
 
 		self._scene_api_version_check(scenedef)
 
-		print(f'PUT {uri}')
-		print(scenedef)
+		rv= self.call(uri, method='PUT', data=scenedef)
+
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(rv)
+
+		if len(rv) != 1:
+			raise huectl.exception.BadResponse(rv)
+
+		if 'success' not in rv:
+			raise huectl.exception.BadResponse(rv)
 
 	def create_scene(self, scenedef, sceneid=None):
 		uri= '/scenes'
@@ -413,9 +421,16 @@ class HueBridge:
 		if sceneid is not None:
 			uri= f'/scenes/{sceneid}'
 
-		print(f'POST {uri}')
-		print(scenedef)
-		return
+		rv= self.call(uri, method='POST', data=scenedef)
+
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(rv)
+
+		if len(rv) != 1:
+			raise huectl.exception.BadResponse(rv)
+
+		if 'success' not in rv:
+			raise huectl.exception.BadResponse(rv)
 
 	def _scene_api_version_check(self, scenedef):
 		apiver= self.api_version()
@@ -560,7 +575,7 @@ class HueBridge:
 
 			data[k]= v
 
-		response= self.call('config', method='PUT', data=data)
+		rv= self.call('config', method='PUT', data=data)
 
 	def create_user(self, appname='Python', device='CLI', client_key=None):
 		data= { 
@@ -568,14 +583,14 @@ class HueBridge:
 		}
 		if client_key is not None:
 			data['generate clientkey']= client_key
-		response= self.call(None, registration=True, data=data)
+		rv= self.call(None, registration=True, data=data)
 
-		item= response[0]
+		item= rv[0]
 		if 'success' in item:
 			if 'username' in item['success']:
 				return item['success']['username']
 
-		raise huectl.exception.BadResponse(json.dumps(response))
+		raise huectl.exception.BadResponse(json.dumps(rv))
 
 	def get_datastore(self):
 		return self.call(None, raw=True)
