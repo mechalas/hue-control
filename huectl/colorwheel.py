@@ -6,6 +6,12 @@
 # occasionally will be off, esp in the yellow-green space since Hue
 # lights tend to have a narrow green gamut.
 
+families= ( 'red', 'orange', 'tumeric', 'yellow cheese', 'yellow', 
+	'green grape', 'chartreuse', 'green pea', 'green', 'clover',
+	'emerald', 'malachite', 'cyan', 'turquoise', 'azure', 'royal blue',
+	'blue', 'dioxazine', 'violet', 'aniline', 'magenta', 'bougainvillea',
+	'pink', 'red plum' )
+
 colors= (
 	( 'ham', 'pale raspberry', 'red', 'dark red', 'maroon' ),
 	( 'parmesan cheese', 'peanut butter', 'orange', 'brown', 'dark brown' ),
@@ -45,6 +51,36 @@ hueangles= (0, 15, 36, 46, 55, 62.5, 68, 87, 109, 133.5, 153.5, 166, 176, 185, 1
 
 pts=((0.25,1.0),(0.50,1.0),(1.0,1.0),(1.0,0.66),(1.0,0.33))
 
+def colorfamilies():
+	return families
+
+# Return all colors in a family
+def colorfamily(name):
+	try:
+		i= families.index(name)
+		return colors[i]
+	except ValueError:
+		raise ValueError(f'unknown color family {name}')
+
+# Turn a color name into HSV values
+
+def colordef(name):
+	fidx= 0
+	for colorset in colors:
+		if name in colorset:
+			try:
+				cidx= colorset.index(name)
+				return colordef_byindex(fidx, cidx)
+			except ValueError:
+				pass
+		fidx+= 1
+
+	raise ValueError(f'unknown color {name}')
+
+def colordef_byindex(fidx, cidx):
+	return ( hueangles[fidx], pts[cidx][0], pts[cidx][1] )
+
+# Turn HSV into a color name
 def colorname(*args):
 	if len(args) == 1:
 		arg0= args[0]
