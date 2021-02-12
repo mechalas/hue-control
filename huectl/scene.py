@@ -42,12 +42,13 @@ class HueScene(HueContainer):
 
 		# Add a 'lightstates' container if we have light states
 		if 'lightstates' in d:
-			lstates= dict()
-			scene._has_lightstates= True
-			for lightid, sdata in d['lightstates'].items():
-				lstates[lightid]= HueLightPreset(sdata)
+			if len(d['lightstates']):
+				lstates= dict()
+				scene._has_lightstates= True
+				for lightid, sdata in d['lightstates'].items():
+					lstates[lightid]= HueLightPreset(sdata)
 
-			scene.lightstates.update(lstates)
+				scene.lightstates.update(lstates)
 
 		return scene
 

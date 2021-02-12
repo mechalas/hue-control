@@ -595,7 +595,7 @@ def do_scene_dump(args):
 				elif k == 'bri':
 					sdef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_bri, (0,1)))
 		else:
-			sdef[secname]= []
+			sdef[secname]= {}
 
 		# Add light name and color as comments
 		print(f'; {lightname}')
@@ -661,6 +661,16 @@ def do_scene_load(args):
 						ls['xy'].insert(0,v)
 					else:
 						ls['xy'].append(v)
+					continue
+				elif k == 'color':
+					try:
+						h, s, b= colorwheel.colordef(v)
+					except ValueError as e:
+						print(str(e))
+						exit(1)
+					ls['hue']= round(map_range(h, (0,360), HueColorHSB.range_hue))
+					ls['sat']= round(map_range(s, (0,1), HueColorHSB.range_sat))
+					ls['bri']= round(map_range(s, (0,1), HueColor.range_bri))
 					continue
 				elif k == 'hue':
 					v= round(map_range(sdef[sec].getfloat(k), (0,360), HueColorHSB.range_hue))
