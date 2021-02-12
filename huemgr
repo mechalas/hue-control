@@ -6,6 +6,7 @@ from huectl.group import HueGroup
 from huectl.scene import HueScene
 from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange
 from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb, map_range
+import huectl.colorwheel as colorwheel
 from argparse import ArgumentParser
 import sys
 import json
@@ -279,41 +280,51 @@ def do_light_set(args):
 
 	schange= HueLightStateChange()
 
-	if args.brightness is not None:
-		if _isinc(args.brightness):
-			schange.inc_brightness(float(args.brightness))
-		else:
-			schange.set_brightness(float(args.brightness))
+	if args.color_name is not None:
+		try:
+			h, s, b= colorwheel.colordef(args.color_name)
+		except ValueError as e:
+			print(str(e))
+			exit(1)
+		schange.set_hue(h)
+		schange.set_sat(s)
+		schange.set_brightness(b)
+	else:
+		if args.brightness is not None:
+			if _isinc(args.brightness):
+				schange.inc_brightness(float(args.brightness))
+			else:
+				schange.set_brightness(float(args.brightness))
 
-	if args.hue is not None:
-		if _isinc(args.hue):
-			schange.inc_hue(float(args.hue))
-		else:
-			schange.set_hue(float(args.hue))
+		if args.hue is not None:
+			if _isinc(args.hue):
+				schange.inc_hue(float(args.hue))
+			else:
+				schange.set_hue(float(args.hue))
 
-	if args.saturation is not None:
-		if _isinc(args.saturation):
-			schange.inc_sat(float(args.saturation))
-		else:
-			schange.set_sat(float(args.saturation))
+		if args.saturation is not None:
+			if _isinc(args.saturation):
+				schange.inc_sat(float(args.saturation))
+			else:
+				schange.set_sat(float(args.saturation))
 
-	if args.xy is not None:
-		xy_pair= args.xy.split(',')
-		if len(xy_pair) != 2:
-			raise ValueError('x,y pair required')
+		if args.xy is not None:
+			xy_pair= args.xy.split(',')
+			if len(xy_pair) != 2:
+				raise ValueError('x,y pair required')
 
-		x, y= xy_pair
+			x, y= xy_pair
 
-		if _isinc(x) or _isinc(y):
-			schange.inc_xy((float(x),float(y)))
-		else:
-			schange.set_xy((float(x),float(y)))
+			if _isinc(x) or _isinc(y):
+				schange.inc_xy((float(x),float(y)))
+			else:
+				schange.set_xy((float(x),float(y)))
 
-	if args.color_temperature is not None:
-		if _isinc(args.color_temperature):
-			schange.inc_cct(int(args.color_temperature))
-		else:
-			schange.set_cct(int(args.color_temperature))
+		if args.color_temperature is not None:
+			if _isinc(args.color_temperature):
+				schange.inc_cct(int(args.color_temperature))
+			else:
+				schange.set_cct(int(args.color_temperature))
 
 	if args.alert:
 		schange.set_alert(args.alert)
@@ -914,6 +925,27 @@ def init_hue(args):
 # Color conversion
 #----------------------------------------
 
+def do_color_name(args):
+	if args.all:
+		fidx= 0
+		for fam in colorwheel.colorfamilies():
+			cidx= 0
+			for color in colorwheel.colorfamily(fam):
+				h, s, b= colorwheel.colordef_byindex(fidx, cidx)
+				print(f'{color}: {h},{s},{b}')
+				cidx+= 1
+			fidx+= 1
+	elif args.families:
+		for fam in colorwheel.colorfamilies():
+			print('{:s}: {:s}'.format(fam, ', '.join(colorwheel.colorfamily(fam))))
+	else:
+		for name in args.name:
+			try:
+				h, s, b= colorwheel.colordef(name)
+				print(f'{name}: {h},{s},{b}')
+			except ValueError:
+				print(f'{name}: unknown color')
+
 def do_color(args):
 	c= None
 
@@ -1123,6 +1155,9 @@ standard_args(parser_light_set, 'bridge')
 parser_light_set.add_argument('-a', '--all', action='store_true',
 	help='Set all lights on the bridge')
 
+parser_light_set.add_argument('-n', '--color-name', type=str,
+	help='Set a light to a known, named color')
+
 parser_light_set.add_argument('-c', '--color-temperature', type=str,
 	help='Set a light color temperature in Kelvin, or specify a +/- increment.')
 parser_light_set.add_argument('--xy', type=str,
@@ -1269,6 +1304,18 @@ standard_args(parser_rlink_get, 'raw', 'pretty', 'bridge')
 parser_rlink_get.add_argument('id', nargs='*', help='Resourcelink IDs')
 parser_rlink_get.set_defaults(func=do_rlinks_get)
 
+
+# Color names
+#----------------------------------------
+parser_color_name= subparsers.add_parser('color-name', 
+	help='Obtain color values for known color names')
+parser_color_name.add_argument('-a', '--all', action='store_true',
+	help='Get all known colors')
+parser_color_name.add_argument('-f', '--families', action='store_true',
+	help='List color families')
+parser_color_name.add_argument('name', nargs='*', 
+	help='Color name[s]')
+parser_color_name.set_defaults(func=do_color_name)
 
 # Color conversion
 #----------------------------------------
