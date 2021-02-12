@@ -202,7 +202,6 @@ class HueScene(HueContainer):
 			# user, so we need to check if we're doing a new scene or
 			# replacing an existing one.
 
-			print(self.id)
 			try:
 				s= self.bridge.get_scene(self.id)
 				newscene= False
