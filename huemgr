@@ -238,15 +238,28 @@ def do_group(args):
 				group= hue.get_group(groupid, lights=lights)
 				groups[groupid]= group
 
-		if args.raw:
+		if args.raw or args.pretty:
 			return
 
-	for group in groups.values():
+	if args.sort:
+		if args.sort == 'id':
+			grouplist= map(lambda x: x[1], sorted(groups.items()))
+		else:
+			grouplist= list(groups.values())
+			grouplist.sort(key=lambda x: getattr(x, args.sort))
+	else:
+		grouplist= groups.values()
+
+	maxw= len(max(groups.keys(), key=len))
+	fmt= '{:'+str(maxw)+'s} {:s} ({:s})'
+
+	for group in grouplist:
 		if group:
-			print(group)
+			print(fmt.format(group.id, group.name, group.type))
 			for lightid in group.lights.keys(unresolved=True):
 				light= group.lights.item(lightid)
-				print('    '+str(light))
+				lstate= _light_state(light.lightstate)
+				print(f'    {light.id} {light.name}, {lstate}')
 			print()
 
 #----------------------------------------------------------------------------
@@ -1227,6 +1240,8 @@ parser_bridge_add.set_defaults(func=do_bridge_add)
 parser_group= subparsers.add_parser('group',
 	help='List group definitions')
 standard_args(parser_group, 'raw', 'pretty', 'bridge')
+parser_group.add_argument('-s', '--sort', choices=['name','id','type'],
+	help='Sort list by field')
 parser_group.add_argument('id', nargs='*', help='Group IDs')
 parser_group.set_defaults(func=do_group)
 
