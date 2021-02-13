@@ -63,7 +63,8 @@ class Config:
 
 	def save(self):
 		# Make a backup first
-		shutil.copyfile(self.filename, self.filename+'.bak')
+		if os.path.exists(self.filename):
+			shutil.copyfile(self.filename, self.filename+'.bak')
 
 		# Write new config
 		with open(self.filename, 'w') as f:
@@ -97,12 +98,34 @@ class Config:
 				raise BridgeExists(name=name)
 
 		self.cf[serial]= {
-			'name': name,
 			'addr': addr,
 			'user_id': userid
 		}
 
+		if len(name):
+			self.cf['name']= name
+
+		# If we don't already have a default bridge, make it this one
+
+		if 'DEFAULT' not in self.cf:
+			self.cf['DEFAULT']= {
+				'default_bridge': serial
+			}
+			return True
+
+		default= self.cf['DEFAULT']
+		if 'default_bridge' not in default:
+			default['default_bridge']= serial
+
 		return True
+
+	def set_default_bridge(self, serial):
+		if 'DEFAULT' not in self.cf:
+			self.cf['DEFAULT']= {
+				'default_bridge': serial
+			}
+		else:
+			self.cf['DEFAULT']['default_bridge']= serial
 
 	def _get_serial(self, name=None, addr=None):
 		cf= self.cf
