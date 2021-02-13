@@ -1,6 +1,7 @@
+from huectl.ro import read_only_properties as read_only
 import huectl.bridge
 from huectl.exception import InvalidOperation
-from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorPointxy, HueColorPointHS, HueColorGamut, HueColorTemp, kelvin_to_mired, map_range
+from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorPointxy, HueColorPointHS, HueColorGamut, HueColorTemp, kelvin_to_mired, map_range, mired_to_kelvin
 import json
 
 class HueAlertEffect:
@@ -167,8 +168,19 @@ class HueState:
 		self.effect= None
 		self.colormode= None
 
+	def brightness(self, torange=None):
+		if torange is None:
+			return self.bri
+		
+		return map_range(self.bri, HueColor.range_bri, torange)
+
 	def colortemp(self):
 		return self.ct
+	
+	def kelvin(self):
+		if self.colormode != HueColorMode.CT:
+			raise huectl.exception.InvalidOperation('kelvin', self.colormode)
+		return self.ct.kelvin()
 
 	def color(self):
 		if self.colormode == HueColorMode.xyY:
@@ -192,8 +204,6 @@ class HueLightPreset(HueState):
 		if not isinstance(obj, dict):
 			raise TypeError
 
-		self.colormode= HueColorMode.Dimmable
-
 		if 'on' in obj:
 			self.on= obj['on']
 
@@ -204,6 +214,10 @@ class HueLightPreset(HueState):
 			self.transitiontime= obj['transitiontime']
 
 		if 'bri' in obj:
+			# If there's a color or ct this will get overwritten.
+			# If not, we're just a dimmable bulb.
+			if self.color is None:
+				self.colormode= HueColorMode.Dimmable
 			self.bri= obj['bri']
 
 		if 'ct' in obj:
@@ -225,7 +239,6 @@ class HueLightPreset(HueState):
 		if not self.on:
 			return s
 
-		print(self.bri)
 		if self.bri is not None:
 			s+= ' bri={:.4f}'.format(map_range(self.bri, HueColor.range_bri, (0,1)))
 
@@ -484,7 +497,23 @@ class HueLightStateChange:
 # the Hue Smart Plug)
 #============================================================================
 
-class HueLight:
+@read_only('id',
+	'bridge',
+	'name',
+	'manufacturername',
+	'modelid',
+	'name',
+	'productid',
+	'productname',
+	'swconfigid',
+	'swversion',
+	'type',
+	'uniqueid',
+	'luminaireuniqueid',
+	'capabilities',
+	'config'
+)
+class HueLight(object):
 	top_attrs= (
 		'manufacturername',
 		'modelid',
@@ -512,19 +541,19 @@ class HueLight:
 		light= HueLight(bridge)
 
 		# Make sure id is a string
-		light.id= str(lightid)
+		light.__dict__['id']= str(lightid)
 
 		for attr in HueLight.top_attrs:
 			if attr in d:
 				light.__dict__[attr]= d[attr]
 
 		if 'luminaireuniqueid' in d:
-			light.luminaireuniqueid= d['luminaireuniqueid']
+			light.__dict__['luminaireuniqueid']= d['luminaireuniqueid']
 
-		light.config= d['config']
+		light.__dict__['config']= d['config']
 
 		# Load capabilities before state since the latter needs the former
-		light.capabilities= HueLightCapabilities.parse_definition(d['capabilities'])
+		light.__dict__['capabilities']= HueLightCapabilities.parse_definition(d['capabilities'])
 		light.lightstate= HueLightState(d['state'])
 		
 		return light
@@ -548,6 +577,12 @@ class HueLight:
 		self.capabilities= dict()
 		self.config= dict()
 		self.lightstate= None
+
+	def __setattr__(self, prop, val):
+		if prop == 'name':
+			self.rename(val)
+		else:
+			super().__setattr__(prop, val)
 
 	def __str__(self):
 		return f'<HueLight> {self.id} {self.name}, {self.productname}, {self.lightstate}'
@@ -588,7 +623,11 @@ class HueLight:
 		if len(name) > 32:
 			raise ValueError(f'Max name length is 32 characters')
 
-		self.bridge.set_light_attributes(self.id, name=name)
+		try:
+			self.bridge.set_light_attributes(self.id, name=name)
+			self.__dict__['name']= name
+		except Exception as e:
+			raise e
 
 	def change_state(self, schange):
 		return self.bridge.set_light_state(self.id, schange.asdict())

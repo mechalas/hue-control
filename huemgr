@@ -3,8 +3,8 @@
 from huectl.bridge import HueBridge, HueBridgeSearch, HueScanResults
 from huectl.exception import BridgeDefined
 from huectl.group import HueGroup
-from huectl.scene import HueScene
-from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange
+from huectl.scene import HueScene, HueSceneType
+from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange, HueColorMode
 from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb, map_range
 import huectl.colorwheel as colorwheel
 from argparse import ArgumentParser
@@ -466,7 +466,10 @@ def do_light(args):
 
 	for light in lights.values():
 		if light:
-			print(light)
+			statedef= _light_state(light.lightstate)
+			print(f'{light.id} {light.name} ({light.productname}) {statedef}')
+
+			#print(light)
 
 #----------------------------------------------------------------------------
 # Rules
@@ -503,29 +506,42 @@ def do_rule(args):
 # Scenes
 #----------------------------------------------------------------------------
 
+# Print out a scene list, either a summary or with full light state 
+# information. The latter takes longer, as we have to look up our
+# lights. Otherwise, we just need groups in case there are group
+# scenes.
+
 def do_scene(args):
 	hue= init_hue(args)
 
+	groups= dict()
 	scenes= dict()
 
-	# If we just want a raw response, no need to get light defs
+	# If we just want a raw response, no need to get light or group defs
 	if not (args.raw or args.pretty):
 		# If asked for a summary output, no need to get/resolve light
 		# defs
 		if args.summary:
 			lights= dict()
 		else:
+			print('Loading lights...')
 			lights= hue.get_all_lights()
+
+		print('Loading groups...')
+		groups= hue.get_all_groups()
+
 
 	if not len(args.id):
 		if args.raw or args.pretty:
 			raw_print(args, hue.get_all_scenes(raw=True))
 			return
 
+		print('Loading scene index...')
 		if args.no_light_states or args.summary:
 			scenes= hue.get_all_scenes(lights=lights)
 		else:
 			t_scenes= hue.get_all_scenes(lights=lights)
+			print('Loading scenes...')
 			for sceneid in t_scenes.keys():
 				scenes[sceneid]= hue.get_scene(sceneid, lights=lights)
 
@@ -555,11 +571,24 @@ def do_scene(args):
 			continue
 
 		if scene:
-			print(scene)
+			lightlist= scene.lights.keys(unresolved=True)
+
+			if scene.type == HueSceneType.GroupScene:
+				group= groups[scene.group]
+				sceneinfo= f'{scene.id} {scene.name} ({scene.type}: {group.name})'
+			else:
+				sceneinfo= f'{scene.id} {scene.name} ({scene.type})'
+
+			if args.summary:
+				if len(lightlist):
+					sceneinfo+= ' Lights {:s}'.format(','.join(lightlist))
+
+			print(sceneinfo)
+
 			if args.summary:
 				continue
 
-			for lightid in scene.lights.keys(unresolved=True):
+			for lightid in lightlist:
 				# We don't want the light's current state so we can't just
 				# print the object as a str()
 
@@ -569,7 +598,7 @@ def do_scene(args):
 					if not args.no_light_states:
 						# Get the light preset
 						preset= _scene_preset(scene, lightid)
-					print(f'    {lightid} {light.name}, {light.productname} {preset}')
+					print(f'    {lightid} {light.name} ({light.productname}) {preset}')
 				else:
 					print(f'    {lightid} UNKNOWN LIGHT')
 			print()
@@ -579,7 +608,41 @@ def _scene_preset(scene, lightid):
 	if not preset:
 		return ''
 
-	return str(preset)
+	return _light_state(preset)
+
+def _light_state(state):
+	# Turn the state in to a printed string
+
+	if state.on:
+		pdef= 'On'
+	else:
+		return 'Off'
+
+	# It's not a dimmable light
+
+	if state.colormode is None:
+		return pdef
+
+	pdef+= ' {:d}%'.format(round(state.brightness(torange=(0,100))))
+
+	if state.colormode == HueColorMode.CT:
+		pdef+= ' at {:d}K'.format(state.kelvin())
+		return pdef
+
+	color= state.color()
+
+	if state.colormode == HueColorMode.HSB:
+		hue= color.hue(torange=(0,360))
+		sat= color.sat(torange=(0,100))
+		pdef+= ', Hue {:d}, Sat {:d}% '.format(round(hue), round(sat))
+	elif state.colormode == HueColorMode.xyY:
+		pdef+= ', xy {:.4f},{:.4f} '.format(color.x(), color.y())
+	else:
+		return pdef
+
+	pdef+= '('+color.name()+')'
+
+	return pdef
 
 # Use configparser to dump an INI file of the scene def. Use INI because
 # it's easier for humans to read and write, and the Hue data structures
