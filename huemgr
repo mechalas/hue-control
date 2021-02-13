@@ -103,7 +103,7 @@ class Config:
 		}
 
 		if len(name):
-			self.cf['name']= name
+			self.cf[serial]['name']= name
 
 		# If we don't already have a default bridge, make it this one
 
@@ -134,7 +134,7 @@ class Config:
 			for serial in cf.sections():
 				d= cf[serial]
 				if 'name' in d:
-					if name == d['name']:
+					if name.lower() == d['name'].lower():
 						return serial
 			return None
 
@@ -1046,6 +1046,18 @@ def do_users_get(args):
 	for user in userlist.users():
 		print(user)
 
+def do_bridge_def(args):
+	config= Config(args.config)
+
+	brid= args.identifier[0]
+	bridge= config.get_bridge(brid)
+	if bridge is None:
+		print(f"No bridge definition matches {brid}")
+		exit(1)
+
+	config.set_default_bridge(bridge['serial_number'])
+	config.save()
+
 def do_bridge_reg(args):
 	hue= None
 	config= Config(args.config)
@@ -1089,7 +1101,7 @@ def do_bridge_reg(args):
 		'overwrite': True
 	}
 
-	if 'name' in args:
+	if args.name is not None:
 		# If the new name is rejected, print a warning but still
 		# add our bridge definition to the config file (minus the
 		# illegal name).
@@ -1101,7 +1113,7 @@ def do_bridge_reg(args):
 			print(e)
 
 	elif hue is not None:
-		name= hue.name
+		kwargs['name']= hue.name()
 
 	if config.add_bridge(**kwargs):
 		config.save()
@@ -1311,7 +1323,7 @@ parser.add_argument('-c', '--config', help='Use configuration file CONFIG',
 
 subparsers= parser.add_subparsers()
 
-# Bridge management 
+# Bridge definitions/config file management 
 #--------------------
 
 # bridge-search
@@ -1339,6 +1351,14 @@ parser_bridge_reg.add_argument('-s', '--serial-number', nargs='?',
 parser_bridge_reg.add_argument('address', nargs=1, 
 	help='The IP address of the bridge to add')
 parser_bridge_reg.set_defaults(func=do_bridge_reg)
+
+# bridge-default
+
+parser_bridge_def= subparsers.add_parser('bridge-default',
+	help='Set the default bridge')
+parser_bridge_def.add_argument('identifier', type=str, nargs=1,
+	help='The bridge to use. Can be a name, IP address, or serial number. The bridge must already be defined in your .huemgr config file.')
+parser_bridge_def.set_defaults(func=do_bridge_def)
 
 # Group management
 #--------------------
@@ -1406,7 +1426,7 @@ parser_light_add.set_defaults(func=do_light_add)
 parser_light_pwr= subparsers.add_parser('light-power',
 	help='Turn lights on (default) or off')
 standard_args(parser_light_pwr, 'bridge')
-parser_light_pwr.add_argument('-a', '--all',
+parser_light_pwr.add_argument('-a', '--all', action='store_true',
 	help='Control all lights on the bridge.')
 parser_light_pwr.add_argument('-t', '--transition-time', type=int,
 	help='Set transition time in 100ms (e.g. 5=500ms)')
