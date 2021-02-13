@@ -194,6 +194,9 @@ class HueBridge:
 	def api_version(self):
 		return self.config.apiversion
 
+	def name(self):
+		return self.config.name
+
 	#------------------------------------------------------------
 	# High level functions
 	#------------------------------------------------------------
