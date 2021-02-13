@@ -282,7 +282,10 @@ class HueColorxyY(HueColor):
 		return self.pt.y
 
 	def name(self):
-		return colorname(self.hsb())
+		inh, ins, inb= xyY_to_hsb((self.x(), self.y(), 
+			self.brightness(torange=(0,1))))
+		return colorname(xyY_to_hsb((self.x(), self.y(),
+			self.brightness(torange=(0,1)))))
 
 	def rgb(self):
 		return xyY_to_rgb((self.x(), self.y(), self.brightness(torange=(0,1))))
@@ -290,7 +293,7 @@ class HueColorxyY(HueColor):
 	def hsb(self):
 		inh, ins, inb= xyY_to_hsb((self.x(), self.y(), 
 			self.brightness(torange=(0,1))))
-		return (map_range(inh, (0,1), HueColorHSB.range_hue),
+		return (map_range(inh, (0,360), HueColorHSB.range_hue),
 			map_range(ins, (0,1), HueColorHSB.range_sat),
 			map_range(inb, (0,1), HueColor.range_bri))
 
