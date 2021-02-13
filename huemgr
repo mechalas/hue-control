@@ -1122,11 +1122,13 @@ def do_color(args):
 		color= HueColorTemp(float(args.color), kelvin=True)
 
 	if args.to_color == 'xyY':
-		newcolor= color.xyY()
+		xyY= color.xyY()
+		newcolor= HueColorxyY(*xyY)
 		print("x={:.4f} y={:.4f} Y={:.4f}".format(newcolor.x(),
 			newcolor.y(), newcolor.brightness()))
 	elif args.to_color == 'hsb':
-		newcolor= color.hsb()
+		hsb= color.hsb()
+		newcolor= HueColorHSB(*hsb)
 		print('hue={:.4f} sat={:.4f} bri={:.4f}'.format(
 			newcolor.hue(torange=(0,360)),
 			newcolor.sat(torange=(0,1)),
