@@ -461,12 +461,21 @@ def do_light(args):
 				light= hue.get_light(lightid)
 				lights[lightid]= light
 
-		if args.raw:
+		if args.raw or args.pretty:
 			return
+
+	if args.sort:
+		if args.sort == 'id':
+			lightlist= map(lambda x: x[1], sorted(lights.items()))
+		else:
+			lightlist= list(lights.values())
+			lightlist.sort(key=lambda x: getattr(x, args.sort))
+	else:
+		lightlist= lights.values()
 
 	maxw= len(max(lights.keys(), key=len))
 	fmt= '{:'+str(maxw)+'s} {:s} ({:s}) {:s}'
-	for light in lights.values():
+	for light in lightlist:
 		if light:
 			statedef= _light_state(light.lightstate)
 			print(fmt.format(light.id, light.name, light.productname, statedef))
@@ -1253,6 +1262,8 @@ parser_group_edit.set_defaults(func=do_group_edit)
 parser_light= subparsers.add_parser('light',
 	help='List light definitions')
 standard_args(parser_light, 'raw', 'pretty', 'bridge')
+parser_light.add_argument('-s', '--sort', choices=['name','id'],
+	help='Sort list by field')
 parser_light.add_argument('id', nargs='*', help='Light IDs')
 parser_light.set_defaults(func=do_light)
 
