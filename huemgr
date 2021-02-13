@@ -8,6 +8,7 @@ from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange, 
 from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb, map_range
 import huectl.colorwheel as colorwheel
 from argparse import ArgumentParser
+import textwrap
 import sys
 import json
 import asyncio
@@ -144,6 +145,8 @@ class Config:
 			if bridge:
 				return bridge
 
+			return None
+
 		elif serial:
 			return self.bridge(serial)
 
@@ -182,10 +185,14 @@ class Config:
 def do_bridge_search(args):
 	kwargs= dict()
 
-	if args.search_time:
-		kwargs['search_time']= args.search_time
+	if args.quick:
+		bridges= HueBridgeSearch.quick_search()
+	else:
+		if args.search_time:
+			kwargs['search_time']= args.search_time
 
-	bridges= HueBridgeSearch.search(**kwargs)
+		bridges= HueBridgeSearch.search(**kwargs)
+
 	if bridges is not None:
 		print(json.dumps(bridges, indent=4))
 		exit(0)
@@ -1056,7 +1063,10 @@ def init_hue(args):
 
 	bridge= config.find_bridge(args.bridge)
 	if bridge is None:
-		print('No bridge specified')
+		if args.bridge is None:
+			print('No bridge specified')
+		else:
+			print('Bridge not found')
 		exit(1)
 
 	if 'user_id' in bridge:
@@ -1072,8 +1082,14 @@ def init_hue(args):
 		print('TO DO: discover bridge IP address')
 		exit(1)
 
-	hue= HueBridge(addr, user_id=user_id)
-	
+	try:
+		hue= HueBridge(addr, user_id=user_id)
+	except Exception as e:
+		print(str(e))
+		print('-'*20)
+		print_wrap(f"Cannot connect to a HueBridge at {addr}. Your bridge's IP address may have changed, or it may be offline. Re-run a bridge search.")
+		exit(1)
+
 	return hue
 
 #----------------------------------------
@@ -1165,6 +1181,9 @@ def do_color(args):
 # Util functions
 #----------------------------------------
 
+def print_wrap(s):
+	print("\n".join(textwrap.wrap(s)))
+
 # Raw print and pretty-print
 
 def raw_print(args, s):
@@ -1213,7 +1232,9 @@ subparsers= parser.add_subparsers()
 parser_search= subparsers.add_parser('bridge-search',
 	help='Search for a Philips Hue bridge on local networks')
 parser_search.add_argument('-S', '--search-time', type=int,
-	help='The time to spend searching for Hue Bridges in seconds')
+	help='The time to spend searching for Hue Bridges in seconds. Does not apply to --quick searches.')
+parser_search.add_argument('-q', '--quick', action='store_true',
+	help='Perform a quick search for bridges by querying the MeetHue portal. This will not find new/unconfigured bridges, or bridges that do not have internet access.')
 parser_search.set_defaults(func=do_bridge_search)
 
 # bridge-add
