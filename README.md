@@ -144,12 +144,14 @@ huemgr light-power [-h] [-b BRIDGE] [-a ALL] [-t TRANSITION_TIME] [-B [BRIGHTNES
 |---|---|
 | id | The ID(s) of the light(s) to control. |
 | -a, --all | Control all lights on the bridge. |
-| -t TRANSITION_TIME, --transition-time TRANSITION_TIME | Set transition time in seconds. This can be fractional, but the minimum granularity is 1/10th of a second, so .1 seconds (100 ms). |
+| -t TRANSITION_TIME, --transition-time TRANSITION_TIME | Set transition time in seconds. This can be fractional, but the minimum granularity is 1/10th of a second, so .1 seconds (100 ms). This only applies to the **--off** option. |
 | -B [BRIGHTNESS], --brightness [BRIGHTNESS] | Turn lights on to the given brightness level. |
 | -X, --off | Turn lights off instead of on |
 
-This command turns lights on by default, and off if **--off** is specified.
+This command turns lights on by default, and off if **--off** is specified. When turning lights off, a transition time can be set using the **--transition-time** option. You can give a fractional number of seconds in 0.1 second increments (a time of 3.27 seconds will be rounded to 3.3).
 
-Lights are turned on to their previous brightness and with the default transition time of 400ms. These values can be overridden with the **--brightness** option, which is specified as a fractional number from 0 to 1, and the **--transition-time** option which specifies the time in fractional seconds, with 0.1 seconds being the minimum interval (a time of 3.27 seconds will be rounded to 3.3).
+Lights are turned on to their previous brightness, though this can be overridden with the **--brightness** option, which is specified as a fractional number from 0 to 1. 
+
+> Turning lights off using a transition time sets the power-on brightness to 0, so you'll need to explicitly use **--brightness** when turning them back on.
 
 You must specify either a list of lights to control by their **id**, or **--all** to control all lights.
