@@ -84,15 +84,15 @@ class Config:
 			raise TypeError
 
 		if not overwrite:
-			check= self.find_bridge(name=name)
+			check= self.get_bridge(name=name)
 			if check is not None:
 				raise BridgeExists(name=name)
 
-			check= self.find_bridge(addr=addr)
+			check= self.get_bridge(addr=addr)
 			if check is not None:
 				raise BridgeExists(name=name)
 
-			check= self.find_bridge(serial=serial)
+			check= self.get_bridge(serial=serial)
 			if check is not None:
 				raise BridgeExists(name=name)
 
@@ -126,22 +126,22 @@ class Config:
 		return None
 
 	
-	def find_bridge(self, *args, name=None, addr=None, serial=None):
+	def get_bridge(self, *args, name=None, addr=None, serial=None):
 		cf= self.cf
 
 		if len(args):
 			# Search by serial number, then address, then name.
 			search= args[0]
 
-			bridge= self.find_bridge(serial=search)
+			bridge= self.get_bridge(serial=search)
 			if bridge:
 				return bridge
 
-			bridge= self.find_bridge(addr=search)
+			bridge= self.get_bridge(addr=search)
 			if bridge:
 				return bridge
 
-			bridge= self.find_bridge(name=search)
+			bridge= self.get_bridge(name=search)
 			if bridge:
 				return bridge
 
@@ -178,6 +178,29 @@ class Config:
 
 		return None
 
+	def update(self, serial, addr=None, name=None):
+		save= False
+
+		if serial not in self.cf:
+			return False
+
+		cf= self.cf[serial]
+		if addr:
+			if cf['addr'] != addr:
+				cf['addr']= addr
+				save= True
+
+		if name:
+			if cf['name'] != name:
+				cf['name']= name
+				save= True
+
+		if save:
+			self.save()
+			return True	
+
+		return False
+
 #----------------------------------------------------------------------------
 # Bridge search
 #----------------------------------------------------------------------------
@@ -194,8 +217,14 @@ def do_bridge_search(args):
 		bridges= HueBridgeSearch.search(**kwargs)
 
 	if bridges is not None:
-		print(json.dumps(bridges, indent=4))
+		for serial,data in bridges.items():
+			addr= data['ipAddress']
+			s= f"Serial number {serial} at {addr}"
+			if 'name' in data:
+				s+= " ("+data['name']+")"
+			print(s)
 		exit(0)
+
 	exit(1)
 
 #----------------------------------------------------------------------------
@@ -994,7 +1023,7 @@ def do_users_get(args):
 	for user in userlist.users():
 		print(user)
 
-def do_bridge_add(args):
+def do_bridge_reg(args):
 	hue= None
 	config= Config(args.config)
 
@@ -1061,7 +1090,7 @@ def do_bridge_add(args):
 def init_hue(args):
 	config= Config(args.config)
 
-	bridge= config.find_bridge(args.bridge)
+	bridge= config.get_bridge(args.bridge)
 	if bridge is None:
 		if args.bridge is None:
 			print('No bridge specified')
@@ -1069,28 +1098,63 @@ def init_hue(args):
 			print('Bridge not found')
 		exit(1)
 
-	if 'user_id' in bridge:
-		user_id= bridge['user_id']
-	else:
-		print('No user registered for bridge {:s} at {:s}'.format(
-			bridge['serial_number'], bridge['addr']))
-		exit(1)
+	serial= bridge['serial_number']
 
+	retry= True
 	if 'addr' in bridge:
 		addr= bridge['addr']
 	else:
-		print('TO DO: discover bridge IP address')
+		print(f'Searching for bridge {serial}')
+		addr= _quick_search(serial)
+		if addr is None:
+			print_wrap(f"Can't find bridge {serial}. Is your bridge powered on and on your network?")
+			exit(1)
+		print(f'Found bridge {serial} at {addr}')
+		config.update(serial, addr=addr)
+		retry= False
+
+	if 'user_id' in bridge:
+		user_id= bridge['user_id']
+	else:
+		print_wrap(f'No user registered for bridge {serial}. Use the bridge-regiser command to set up a user id.')
 		exit(1)
+
+	# Try to talk to the bridge using the stored IP address. If that
+	# doesn't work, do a quick search to see if it's moved.
 
 	try:
 		hue= HueBridge(addr, user_id=user_id)
-	except Exception as e:
-		print(str(e))
-		print('-'*20)
-		print_wrap(f"Cannot connect to a HueBridge at {addr}. Your bridge's IP address may have changed, or it may be offline. Re-run a bridge search.")
-		exit(1)
+		return hue
+	except:
+		pass
 
-	return hue
+	if retry:
+		print_wrap(f"Can't find bridge {serial} at last known address {addr}. Performing a quick search.")
+
+		addr= _quick_search(serial)
+		if addr is None:
+			print_wrap(f"Can't find bridge {serial}. Is your bridge powered on and on your network?")
+			exit(1)
+
+		print(f'Found bridge {serial} at {addr}')
+		config.update(serial, addr=addr)
+
+		try:
+			hue= HueBridge(addr, user_id=user_id)
+			return hue
+		except Exception as e:
+			print(str(e))
+	
+	print('Unable to connect to your bridge {serial} at {addr}')
+
+	exit(1)
+
+def _quick_search(serial):
+	bridges= HueBridgeSearch.quick_search()
+	if serial in bridges:
+		return bridges[serial]['ipAddress']
+
+	return None
 
 #----------------------------------------
 # Color conversion
@@ -1237,21 +1301,21 @@ parser_search.add_argument('-q', '--quick', action='store_true',
 	help='Perform a quick search for bridges by querying the MeetHue portal. This will not find new/unconfigured bridges, or bridges that do not have internet access.')
 parser_search.set_defaults(func=do_bridge_search)
 
-# bridge-add
+# bridge-register
 
-parser_bridge_add= subparsers.add_parser('bridge-add',
-	help='Add a bridge definition')
-parser_bridge_add.add_argument('-B', '--button-pressed', action='store_true',
+parser_bridge_reg= subparsers.add_parser('bridge-register',
+	help='Add a bridge definition and register a user ID')
+parser_bridge_reg.add_argument('-B', '--button-pressed', action='store_true',
 	help='The link button on the bridge has been pressed.')
-parser_bridge_add.add_argument('-n', '--name', nargs='?',
+parser_bridge_reg.add_argument('-n', '--name', nargs='?',
 	help='A friendly name for the bridge')
-parser_bridge_add.add_argument('-u', '--user-id', nargs=1,
+parser_bridge_reg.add_argument('-u', '--user-id', nargs=1,
 	help='The user id for the target bridge. If ommitted, a new user will be registered on the bridge.')
-parser_bridge_add.add_argument('-s', '--serial-number', nargs='?',
+parser_bridge_reg.add_argument('-s', '--serial-number', nargs='?',
 	help='The bridge serial number. Required if the bridge is not online.')
-parser_bridge_add.add_argument('address', nargs=1, 
+parser_bridge_reg.add_argument('address', nargs=1, 
 	help='The IP address of the bridge to add')
-parser_bridge_add.set_defaults(func=do_bridge_add)
+parser_bridge_reg.set_defaults(func=do_bridge_reg)
 
 # Group management
 #--------------------
