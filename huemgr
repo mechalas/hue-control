@@ -506,7 +506,9 @@ def do_light_power(args):
 	schange.set_power(state)
 
 	if args.transition_time is not None:
-		schange.set_transition_time(args.transition_time)
+		tt= round(args.transition_time*10)
+		# Must be provided in deciseconds (100ms)
+		schange.set_transition_time(tt)
 
 	for light in lights.values():
 		# Need to print more/better info here
@@ -1428,8 +1430,8 @@ parser_light_pwr= subparsers.add_parser('light-power',
 standard_args(parser_light_pwr, 'bridge')
 parser_light_pwr.add_argument('-a', '--all', action='store_true',
 	help='Control all lights on the bridge.')
-parser_light_pwr.add_argument('-t', '--transition-time', type=int,
-	help='Set transition time in 100ms (e.g. 5=500ms)')
+parser_light_pwr.add_argument('-t', '--transition-time', type=float,
+	help='Set transition time in seconds. This can be fractional, but the minimum granularity is 1/10th of a second, so .1 seconds (100 ms).')
 group_ex= parser_light_pwr.add_mutually_exclusive_group()
 group_ex.add_argument('-B', '--brightness', nargs='?', type=float, 
 	help='Turn lights on to the given brightness level.')
