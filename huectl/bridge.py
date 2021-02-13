@@ -808,6 +808,7 @@ class HueBridge:
 class HueBridgeSearch(ssdp.SimpleServiceDiscoveryProtocol):
 	locations= set()
 	bridges= dict()
+	PortalAddress= 'https://discovery.meethue.com/'
 
 	def response_received(self, response: ssdp.SSDPResponse, addr: tuple):
 		for header,value in response.headers:
@@ -854,6 +855,30 @@ class HueBridgeSearch(ssdp.SimpleServiceDiscoveryProtocol):
 						'ipAddress': addr[0]
 					}
 
+	# N-UPnP Bridge Discovery, which calls the Hue Portal. Per the Philips
+	# Hue API, bridges periodically poll this portal which stores each 
+	# bridge's internal and external IP addresses, name, and ID.
+	#
+	# This method is fast, but it won't find new/unconfigured bridges.
+	@staticmethod
+	def quick_search():
+		response= requests.request('GET', HueBridgeSearch.PortalAddress)
+		if response.status_code != 200:
+			raise BadHTTPResponse(code=response.status_code)
+
+		results= json.loads(response.text)
+		for bridge in results:
+			bid= bridge['id']
+			serial= bid[0:6]+bid[-6:]
+			HueBridgeSearch.bridges[serial]= {
+				'serialNumber': serial,
+				'ipAddress': bridge['internalipaddress']
+			}
+
+		return HueBridgeSearch.bridges
+
+	# UPnP Bridge Discovery, using the Simple Servicer Discovery Protocol
+	# (SSDP)
 	@staticmethod
 	def search(search_time=30):
 		loop= asyncio.get_event_loop()
