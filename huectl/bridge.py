@@ -125,7 +125,7 @@ class HueBridgeUserlist:
 		for user in self._users.values():
 			yield user
 
-class HueScanResults():
+class HueDeviceScanResults():
 	def __init__(self, bridge):
 		self.bridge= bridge
 		self.active= False
@@ -133,7 +133,7 @@ class HueScanResults():
 		self._found= dict()
 
 	def __str__(self):
-		s= '<HueScanResults> '
+		s= '<HueDeviceScanResults> '
 		if self.active:
 			s+= 'active'
 		else:
@@ -358,7 +358,7 @@ class HueBridge:
 		if 'success' not in rv[0]:
 			raise huectl.exception.BadResponse(rv)
 
-		return HueScanResults(self)
+		return HueDeviceScanResults(self)
 
 	# Get lights that were discovered during the last search (see
 	# init_light_search). 
@@ -366,8 +366,8 @@ class HueBridge:
 	def get_new_lights(self, scanresults):
 		data= self.call('lights/new')
 
-		if not isinstance(scanresults, HueScanResults):
-			raise TypeError('scanresults: expected HueScanResults not '+str(type(scanresults)))
+		if not isinstance(scanresults, HueDeviceScanResults):
+			raise TypeError('scanresults: expected HueDeviceScanResults not '+str(type(scanresults)))
 
 		if 'lastscan' in data:
 			if data['lastscan'] == 'none':
@@ -834,6 +834,7 @@ class HueBridgeSearch(ssdp.SimpleServiceDiscoveryProtocol):
 				except:
 					return
 
+				print(data)
 				try:
 					root= ET.fromstring(data)
 				except Exception as e:
@@ -848,6 +849,7 @@ class HueBridgeSearch(ssdp.SimpleServiceDiscoveryProtocol):
 					if serial is None:
 						return
 
+					print(serial.text)
 					HueBridgeSearch.bridges[serial.text]= {
 						'serialNumber': serial.text,
 						'modelName': model.text,

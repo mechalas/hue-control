@@ -1,6 +1,6 @@
 #! /usr/bin/python3
 
-from huectl.bridge import HueBridge, HueBridgeSearch, HueScanResults
+from huectl.bridge import HueBridge, HueBridgeSearch, HueDeviceScanResults
 from huectl.exception import BridgeDefined
 from huectl.group import HueGroup
 from huectl.scene import HueScene, HueSceneType
@@ -277,7 +277,7 @@ def do_light_add(args):
 		serials= args.serialnum
 
 	if args.no_scan:
-		scan= HueScanResults(hue)
+		scan= HueDeviceScanResults(hue)
 	else:
 		try:
 			scan= hue.init_light_search(serials)
