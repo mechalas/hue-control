@@ -822,19 +822,18 @@ class HueBridgeSearch(ssdp.SimpleServiceDiscoveryProtocol):
 					return
 
 				try:
-					response= urllib.request.urlopen(value)
+					response= requests.request('GET', value)
 				except Exception as e:
 					return
 
-				if response.status != 200:
+				if response.status_code != 200:
 					return
 
 				try:
-					data= response.read().decode('UTF-8')
+					data= response.text
 				except:
 					return
 
-				print(data)
 				try:
 					root= ET.fromstring(data)
 				except Exception as e:
@@ -849,7 +848,6 @@ class HueBridgeSearch(ssdp.SimpleServiceDiscoveryProtocol):
 					if serial is None:
 						return
 
-					print(serial.text)
 					HueBridgeSearch.bridges[serial.text]= {
 						'serialNumber': serial.text,
 						'modelName': model.text,
