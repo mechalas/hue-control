@@ -20,20 +20,13 @@ I've tried to keep Python dependencies to a minimum. You'll need:
 * requests 
 * ssdp (for bridge discovery)
 
-All of these can be installed using pip.
+All of these can be installed using pip:
+
+`$ pip3 install ssdp isodate requests`
 
 ## Bugs and Issue Reports
 
 I can guarantee there are bugs.
-
-## It would be great if this could...
-
-Yes, it would. But I am not there yet. Right now my priorities are:
-
-1. Getting the core API in place and stabilized.
-1. Getting the high-level API at least designed.
-1. Cleaning up problems on my own Hue bridges caused by poorly-behaved apps that have abused the API in the past and left me, the user, to deal with it.
-1. Not causing those same problems for someone else.
 
 # Hue Manager
 
@@ -77,21 +70,98 @@ Hue Manager understands that a bridge's IP address may change, especially if it'
 
 ## Command Reference
 
+> This documentation is not complete. For the full set of commands, see `huemgr --help`, though not all of them have been fully implemented.
+
+* [Group management](#group-management)
+* [Light management](#light-management)
+* [Scene management](#scene-management)
+
+----
+
+### Group Management
+
+* [**huemgr group**](#huemgr-group): show group information
+* [**huemgr group-lights**](#huemgr-group-lights): add/remove lights from a group
+* [**huemgr group-rename**](#huemgr-group-rename): rename a group
+
+#### huemgr group
+
+Print group information and membership.
+
+`usage: huemgr group [-b BRIDGE] [-r] [-R] [-s {name,id,type}] [id [id ...]]`
+
+| option | description|
+|---|---|
+| id | Optional list of group IDs |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
+| -r<br/>--raw  | Print raw response |
+| -R<br/>--pretty | Like **--raw** but pretty-print the response |
+| -s FIELD<br/>--sort FIELD | Sort list by the specified field. Can be one of: name, id, type |
+
+With no arguments, this command will print every group known to the bridge along with its group type and member lights. Otherwise, the groups specified by the **id** list are retrieved. The output can be sorted by either name, id (the default), or the group type using **--sort**.
+
+The **--raw** and **--pretty** options print the raw bridge data, as-is or formatted for greater readability, respectively.
+
+Member lights are printed along with their current light state. The light state includes whether the light is on or off, its brightness and color settings, along with an approximate color name for color lights. See [Color Names](#color-names) for more information on how names are chosen.
+
+----
+
+#### huemgr group-lights
+
+Add, remove, and set the members of a light group.
+
+`huemgr group-lights [-b BRIDGE] -g GROUPID [-a LIGHTID [LIGHTID ...]] [ -r LIGHTID [LIGHTID ...]] [-s LIGHTID [LIGHTID ...]]`
+
+| option | description|
+|---|---|
+| id | Optional list of group IDs |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
+| -a ID ...<br/>--add ID ... | Add one or more lights to the group |
+| -g ID<br/>--groupid ID | **Required.** The ID of the group to modify |
+| -r ID ...<br/>--remove ID ... | Remove one or more lights from the group |
+| -s ID ...<br/>--set ID ... | Set the group membership to the given lights. Cannot be combined with **--add** or **--remove** |
+
+This command edits the lights that are members of the group given by **--groupid**. THe **--groupid** argument is required.
+
+You can both **--add** and **--remove** lights in one command, but these options cannot be combined with **--set**. The **--set** options explicitly sets the membership list to the given light ID's, completely replacing the old list with the new.
+
+> A given light cannot be a member of more than one group with the type "Room". This restriction does not hold for other group types.
+
+----
+
+#### huemgr group-rename
+
+Rename a group.
+
+```
+huemgr group-rename [-b BRIDGE] id name
+```
+
+| option | description |
+|----|----|
+| id | ID of group to rename |
+| name | The new name for the group |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
+
+Changes the name of group ID **id** to **name**.
+
+----
+
 ### Light Management
 
 These commands modify or manage light devices. A light is any device that can be turned on and off (e.g., the Hue Smart Plug is considered a light).
 
-* [huemgr light](#huemgr-light)
-* [huemgr light-add](#huemgr-light-add)
-* [huemgr light-power](#huemgr-light-power)
-* [huemgr light-rename](#huemgr-light-rename)
-* [huemgr light-set](#huemgr-light-set)
+* [**huemgr light**](#huemgr-light): show light information
+* [**huemgr light-add**](#huemgr-light-add): search for and add new lights
+* [**huemgr light-power**](#huemgr-light-power): turn lights on and off
+* [**huemgr light-rename**](#huemgr-light-rename): rename a light
+* [**huemgr light-set**](#huemgr-light-set): set a light's state
 
 -----
 
 #### huemgr light
 
-Print a light or lights and their current light state.
+Print light information and state.
 
 ```
 huemgr light [-b BRIDGE] [-r] [-R] [-s {name,id}] [id [id ...]]
@@ -101,17 +171,18 @@ All arguments are optional.
 |---|---|
 | id | Optional list of light IDs |
 | -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
-| -r, --raw  | Print raw response |
-| -R, --pretty | Pretty-print raw response |
+| -r<br/>--raw  | Print raw response |
+| -R<br/>--pretty | Like **--raw** but pretty-print the 
 | -s FIELD<br/>--sort FIELD | Sort list by the specified field. Can be one of: name, id |
 
 With no arguments, this command will print every light known to the bridge. Otherwise, the lights specified by the **id** list are retrieved. The output can be sorted by either name or id (the default) using **--sort**.
 
 The **--raw** and **--pretty** options print the raw bridge data, as-is or formatted for greater readability, respectively.
 
-The light state includes whether the light is on or off, and the brightness and color settings for the current light, along with an approximate color name. See [Color Names](#color-names) for more information on how names are chosen.
+The light state includes whether the light is on or off, its brightness and color settings, and an approximate color name for color lights. See [Color Names](#color-names) for more information on how names are chosen.
 
 -----
+
 #### huemgr light-add
 
 Search for new lights and add them to the bridge. Use this to start a search for new lights, or to report lights that were discovered after the last search. Lights can also be added using their serial numbers.
@@ -165,7 +236,7 @@ You must specify either a list of lights to control by their **id**, or **--all*
 
 ----
 
-#### light-rename
+#### huemgr light-rename
 
 Rename a light.
 
@@ -183,7 +254,7 @@ Changes the name of light ID **id** to **name**.
 
 ----
 
-#### light-set
+#### huemgr light-set
 
 Set a light's color, brightness, effect, and alert mode.
 
@@ -222,6 +293,15 @@ Color modes cannot be combined. Choosing a color option sets the specific color 
 | --color-temperature | Color Temperature |
 
 A color can also be selected by name with the **--color-name** options. Selecting a color in this manner will set the color mode to HSB. See [Color Names](#color-names) for more information.
+
+### Scene Management
+
+* huemgr scene
+* huemgr scene-delete
+* huemgr scene-dump
+* huemgr scene-load
+* huemgr scene-play
+* huemgr scene-rename
 
 # Color Names
 
