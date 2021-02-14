@@ -2,7 +2,7 @@
 
 from huectl.bridge import HueBridge, HueBridgeSearch, HueDeviceScanResults
 from huectl.exception import BridgeDefined
-from huectl.group import HueGroup
+from huectl.group import HueGroup, HueGroupType
 from huectl.scene import HueScene, HueSceneType
 from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange, HueColorMode
 from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb, map_range
@@ -310,11 +310,20 @@ def do_group(args):
 		grouplist= groups.values()
 
 	maxw= len(max(groups.keys(), key=len))
-	fmt= '{:'+str(maxw)+'s} {:s} ({:s})'
+	fmt= '{:'+str(maxw)+'s} {:s}'
 
 	for group in grouplist:
 		if group:
-			print(fmt.format(group.id, group.name, group.type))
+			s= fmt.format(group.id, group.name)
+
+			if group.type is not None:
+				if group.type == HueGroupType.Room:
+					s+= f' ({group.type} [{group.room_class}])'
+				else:
+					s+= f' ({group.type})'
+
+			print(s)
+
 			for lightid in group.lights.keys(unresolved=True):
 				light= group.lights.item(lightid)
 				lstate= _light_state(light.lightstate)
