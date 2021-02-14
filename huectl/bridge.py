@@ -260,6 +260,15 @@ class HueBridge:
 
 		return True
 
+	# Perform a touchlink operation. This addes the closest
+	# light (within range) to the bridge's ZigBee network.
+	# This functions, among other things, as a way to add a 
+	# light that isn't showing up during an "add light" 
+	# operation, even when the serial number is given.
+
+	def touchlink(self):
+		self.modify_configuration(touchlink=True)
+
 	#------------------------------------------------------------
 	# Bridge API
 	#------------------------------------------------------------
@@ -677,6 +686,15 @@ class HueBridge:
 			data[k]= v
 
 		rv= self.call('config', method='PUT', data=data)
+
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(rv)
+
+		if len(rv) != 1:
+			raise huectl.exception.BadResponse(rv)
+
+		if 'success' not in rv:
+			raise huectl.exception.BadResponse(rv)
 
 	def create_user(self, appname='Python', device='CLI', client_key=None):
 		data= { 
