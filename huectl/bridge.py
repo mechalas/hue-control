@@ -361,7 +361,7 @@ class HueBridge:
 			gtype= groupdef['type']
 
 			if not HueGroupType.usertype(gtype):
-				raise huectl.exception.InvalidOperation(f"{gtype}: can't be created by users")
+				raise huectl.exception.InvalidOperation(f"{gtype}: not a user group type")
 
 			if not HueGroupType.supported(gtype, apiver):
 				raise huectl.exception.APIVersion(have=apiver)
