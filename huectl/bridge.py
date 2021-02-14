@@ -356,23 +356,27 @@ class HueBridge:
 		if 'type' in groupdef:
 			# group type didn't exist until 1.4
 			if apiver < '1.4':
-				raise APIVersion(need='1.4', have=apiver)
+				raise huectl.exception.APIVersion(need='1.4', have=apiver)
 
 			gtype= groupdef['type']
+
+			if not HueGroupType.usertype(gtype):
+				raise huectl.exception.InvalidOperation(f"{gtype}: can't be created by users")
+
 			if not HueGroupType.supported(gtype, apiver):
-				raise APIVersion(have=apiver)
+				raise huectl.exception.APIVersion(have=apiver)
 
 		if 'class' in groupdef:
 			if apiver < '1.11':
-				raise APIVersion(need='1.11', have=apiver)
+				raise huectl.exception.APIVersion(need='1.11', have=apiver)
 
 			rclass= groupdef['class']
 			if not HueRoom.supported(rclass, apiver):
-				raise APIVersion(have=apiver)
+				raise huectl.exception.APIVersion(have=apiver)
 
 		if 'sensors' in groupdef:
 			if apiver < '1.27':
-				raise APIVersion(need='1.27', have=apiver)
+				raise huectl.exception.APIVersion(need='1.27', have=apiver)
 
 		rv= self.call(f'groups', method='POST', data=groupdef)
 
