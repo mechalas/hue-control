@@ -179,7 +179,7 @@ class HueState:
 	
 	def kelvin(self):
 		if self.colormode != HueColorMode.CT:
-			raise huectl.exception.InvalidOperation('kelvin', self.colormode)
+			raise huectl.exception.InvalidOperation('color temperature not support by light')
 		return self.ct.kelvin()
 
 	def color(self):

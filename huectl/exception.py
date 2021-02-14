@@ -6,34 +6,27 @@ class BadResponse(Exception):
 	def __init__(self, text):
 		msg= f"The bridge returned an unrecognized response {text}"
 
-class InvalidGamutSpec(Exception):
-	def __init__(self, gamutspec):
-		msg = "Invalid gamut spec "+str(gamutspec)
-
 class InvalidColorSpec(Exception):
 	def __init__(self, colorspec):
 		msg = "Invalid color spec "+str(colorspec)
 
 class InvalidOperation(Exception):
-	def __init__(self, obj, action):
-		msg = f"Invalid operation {action} on {obj}"
-
-class BridgeDefined(Exception):
-	def __init__(self, name=None, serial=None):
-		if name is not None:
-			val= name
-		elif serial is not None:
-			val= serial
-
-		msg= f"Bridge '{val}' already defined"
+	pass
 
 class APIVersion(Exception):
 	def __init__(self, have=None, need=None):
-		msg= f"API version {need} required, bridge version is {have}"
+		if have is not None:
+			if need is not None:
+				msg= f"API version {need} required, bridge version is {have}"
+			else:
+				msg= f"Not supported by bridge API version {have}"
+		elif need is not None:
+			msg= f"API version {need} required"
+		else:
+			msg= f"Not supported by bridge API version"
 
 class InvalidObject(Exception):
-	def __init__(self, objclass, objid):
-		msg= f"Invalid definition for {objclass} with id {objid}"
+	pass
 
 class AttrsNotSet(Exception):
 	def __init__(self, attrs):
