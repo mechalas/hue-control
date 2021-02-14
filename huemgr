@@ -401,7 +401,7 @@ def do_light_set(args):
 		return
 
 	if args.transition_time is not None:
-		kwargs['ms']= args.transition_time
+		kwargs['ms']= round(args.transition_time*10)
 
 	# Create light state change object
 
@@ -460,7 +460,7 @@ def do_light_set(args):
 		schange.set_dynamic_effect(args.dynamic_effect)
 
 	if args.transition_time is not None:
-		schange.set_transition_time(args.transition_time)
+		schange.set_transition_time(round(args.transition_time*10))
 
 	for light in lights.values():
 		print(light.name)
@@ -506,9 +506,7 @@ def do_light_power(args):
 	schange.set_power(state)
 
 	if args.transition_time is not None:
-		tt= round(args.transition_time*10)
-		# Must be provided in deciseconds (100ms)
-		schange.set_transition_time(tt)
+		schange.set_transition_time(round(args.transition_time*10))
 
 	for light in lights.values():
 		# Need to print more/better info here
@@ -1465,12 +1463,12 @@ parser_light_set.add_argument('-c', '--color-temperature', type=str,
 parser_light_set.add_argument('--xy', type=str,
 	help='Set xy color coordinates as a comma-separated pair, or specify a +/- increment. Cannot be combined with other color modes.')
 parser_light_set.add_argument('-H', '--hue', type=str,
-	help='Set a color hue, or specify a +/- increment. Hue can be fractional. Cannot be combined with other color modes.')
+	help='Set a color hue from 0 to 360, or specify a +/- increment. Hue can be fractional. Cannot be combined with other color modes.')
 parser_light_set.add_argument('-S', '--saturation', type=str,
-	help='Set a color hue, or specify a +/- increment. Cannot be combined with other color modes.')
+	help='Set a color saturation from 0 to 1, or specify a +/- increment. Cannot be combined with other color modes.')
 
 parser_light_set.add_argument('-B', '--brightness', type=str,
-	help='Set a brightness, or specify a +/- increment.')
+	help='Set a brightness from 0 to 1, or specify a +/- increment.')
 
 parser_light_set.add_argument('-A', '--alert', choices=(HueAlertEffect.NoAlert,
 		HueAlertEffect.Select, HueAlertEffect.LSelect),
@@ -1479,8 +1477,8 @@ parser_light_set.add_argument('-e', '--dynamic-effect',
 	choices=(HueDynamicEffect.NoEffect, HueDynamicEffect.ColorLoop),
 	help='Set a dynamic effect')
 
-parser_light_set.add_argument('-t', '--transition-time', type=int,
-	help='Set transition time in 100ms (e.g. 5=500ms)')
+parser_light_set.add_argument('-t', '--transition-time', type=float,
+	help='Set transition time in seconds. This can be fractional, but the minimum granularity is 1/10th of a second, so .1 seconds (100 ms).')
 
 parser_light_set.add_argument('id', nargs='*', help='Light IDs')
 parser_light_set.set_defaults(func=do_light_set)
