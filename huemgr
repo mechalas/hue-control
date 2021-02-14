@@ -1,7 +1,6 @@
 #! /usr/bin/python3
 
 from huectl.bridge import HueBridge, HueBridgeSearch, HueDeviceScanResults
-from huectl.exception import BridgeDefined
 from huectl.group import HueGroup, HueGroupType
 from huectl.scene import HueScene, HueSceneType
 from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange, HueColorMode
