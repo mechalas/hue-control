@@ -215,8 +215,7 @@ class HueGroup(HueContainer):
 		apiver= self.bridge.api_version()
 
 		self.name= None
-		if apiver >= '1.4':
-			self.type= None
+		self.type= None
 		self.action= None
 
 		self.all_on= None
@@ -226,16 +225,13 @@ class HueGroup(HueContainer):
 		self.room_class= None
 		self.add_collection('lights', HueLight)
 
-		if apiver >= '1.12':
-			self.state= None
-			self.recycle= None
+		self.state= None
+		self.recycle= None
 
-		if apiver >= '1.27':
-			self.add_collection('sensors', HueSensor)
-			self.presence= None
+		self.add_collection('sensors', HueSensor)
+		self.presence= None
 
-		if apiver >= '1.28':
-			self.lightlevel= None
+		self.lightlevel= None
 
 	def __str__(self):
 		s= f'<HueGroup> {self.id} {self.name}, {self.type}'
@@ -247,6 +243,26 @@ class HueGroup(HueContainer):
 		# TO DO: Add sensors
 
 		return s
+
+	def asdict(self):
+		groupdef= {}
+
+		if self.name is not None:
+			groupdef['name']= self.name
+
+		if self.type is not None:
+			groupdef['type']= self.type
+
+			if self.type == HueGroupType.Room and self.roomclass is not None:
+				groupdef['class']= self.roomclass
+
+		lights= self.lights.keys(unresolved=True)
+		if len(lights):
+			groupdef['lights']= lights
+
+		sensors= self.sensors.keys(unresolved=True)
+		if len(sensors):
+			groupdef['sensors']= sensors
 
 	# Rename a group
 
@@ -312,4 +328,4 @@ class HueGroup(HueContainer):
 		except Exception as e:
 			self.lights= oldlights
 			raise(e)
-
+	

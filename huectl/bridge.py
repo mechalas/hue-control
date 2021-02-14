@@ -8,7 +8,7 @@ import socket
 import ssl
 import xml.etree.ElementTree as ET
 from huectl.light import HueLight
-from huectl.group import HueGroup
+from huectl.group import HueGroup, HueGroupType
 from huectl.scene import HueScene
 from huectl.sensor import HueSensor
 from huectl.schedule import HueSchedule
@@ -237,7 +237,7 @@ class HueBridge:
 		if groupid is None:
 			lstates= scene.lightstates.dict()
 			if not len(lstates):
-				raise huectl.exception.InvalidObject('HueScene', sceneid)
+				raise huectl.exception.InvalidObject('no lightstats in scene')
 
 			for lightid, state in lstates.items():
 				self.set_light_state(lightid, state)
@@ -313,6 +313,7 @@ class HueBridge:
 
 		return groups
 
+	# modify a group by passing in key=val pairs
 	def set_group_attributes(self, groupid, **kwargs):
 		if groupid == '0':
 			raise huectl.exception.InvalidOperation('set_group_attribute', 'group 0')
@@ -324,6 +325,56 @@ class HueBridge:
 				attrs[attr]= kwargs[attr]
 
 		rv= self.call(f'groups/{groupid}', method='PUT', data=attrs)
+
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(rv)
+
+		if not len(rv):
+			raise huectl.exception.BadResponse(rv)
+
+		errors= []
+		for elem in rv:
+			if 'error' in elem:
+				errors.append(elem[error].keys()[0])
+
+		if len(errors):
+			raise huectl.exception.AttrsNotSet(errors)
+
+		return True
+
+	# create a group by passing in a raw group definition as a
+	# dictionary.
+	def create_group(self, groupdef):
+
+		if not isinstance(groupdef, dict):
+			raise TypeError('groupdef: expected dict not '+str(type(groupdef)))
+
+		# API check
+		
+		apiver= self.api_version()
+
+		if 'type' in groupdef:
+			# group type didn't exist until 1.4
+			if apiver < '1.4':
+				raise APIVersion(need='1.4', have=apiver)
+
+			gtype= groupdef['type']
+			if not HueGroupType.supported(gtype, apiver):
+				raise APIVersion(have=apiver)
+
+		if 'class' in groupdef:
+			if apiver < '1.11':
+				raise APIVersion(need='1.11', have=apiver)
+
+			rclass= groupdef['class']
+			if not HueRoom.supported(rclass, apiver):
+				raise APIVersion(have=apiver)
+
+		if 'sensors' in groupdef:
+			if apiver < '1.27':
+				raise APIVersion(need='1.27', have=apiver)
+
+		rv= self.call(f'groups', method='POST', data=groupdef)
 
 		if not isinstance(rv, list):
 			raise huectl.exception.BadResponse(rv)
