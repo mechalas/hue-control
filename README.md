@@ -43,7 +43,7 @@ A command-line client, _huemgr_, for controlling your Hue system with  supports 
 * Hue system control and management (lights, groups, scenes, etc.)
 * Utility functions
 
-*Hue Manager is a work in progress. There are no official releases yet, and the functionality and interface is still evolving.*
+> Hue Manager is a work in progress. There are no official releases yet, and the functionality and interface are still evolving.
 
 ## Getting Started
 
@@ -81,6 +81,12 @@ Hue Manager understands that a bridge's IP address may change, especially if it'
 
 These commands modify or manage light devices. A light is any device that can be turned on and off (e.g., the Hue Smart Plug is considered a light).
 
+* [huemgr light](#huemgr-light)
+* [huemgr light-add](#huemgr-light-add)
+* [huemgr light-power](#huemgr-light-power)
+* [huemgr light-rename](#huemgr-light-rename)
+* [huemgr light-set](#huemgr-light-set)
+
 -----
 
 #### huemgr light
@@ -94,16 +100,16 @@ All arguments are optional.
 | option | description |
 |---|---|
 | id | Optional list of light IDs |
-| -b BRIDGE, --bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
 | -r, --raw  | Print raw response |
 | -R, --pretty | Pretty-print raw response |
-| -s {name,id}, --sort {name,id} | Sort list by the specified field |
+| -s FIELD<br/>--sort FIELD | Sort list by the specified field. Can be one of: name, id |
 
 With no arguments, this command will print every light known to the bridge. Otherwise, the lights specified by the **id** list are retrieved. The output can be sorted by either name or id (the default) using **--sort**.
 
 The **--raw** and **--pretty** options print the raw bridge data, as-is or formatted for greater readability, respectively.
 
-A bridge other than the default bridge can be specified with **--bridge**.
+The light state includes whether the light is on or off, and the brightness and color settings for the current light, along with an approximate color name. See [Color Names](#color-names) for more information on how names are chosen.
 
 -----
 #### huemgr light-add
@@ -119,8 +125,8 @@ huemgr light-add [-b BRIDGE] [-X] [serial [serial ...]]
 | option | description |
 |----|----|
 | serial | Optional list of serial numbers to add (maximum of 10) |
-| -b BRIDGE, --bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
-| -X, --no-scan | Just report the light(s) found during hte last search without starting a new one |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
+| -X<br/>--no-scan | Just report the light(s) found during hte last search without starting a new one |
 
 With no arguments, this initiates a search for new lights in range of the bridge. Lights that are not currently "owned" by another Hue bridge will be added to the current bridge and reported. A typical light search runs for between 45 seconds and a minute.
 
@@ -132,7 +138,7 @@ If a light was previously owned by another bridge, and it wasn't formally delete
 
 ---
 
-#### light-power
+#### huemgr light-power
 
 Power lights on and off.
 
@@ -143,10 +149,11 @@ huemgr light-power [-h] [-b BRIDGE] [-a ALL] [-t TRANSITION_TIME] [-B [BRIGHTNES
 | option | description |
 |---|---|
 | id | The ID(s) of the light(s) to control. |
-| -a, --all | Control all lights on the bridge. |
-| -t TRANSITION_TIME, --transition-time TRANSITION_TIME | Set transition time in seconds. This can be fractional, but the minimum granularity is 1/10th of a second, so .1 seconds (100 ms). This only applies to the **--off** option. |
-| -B [BRIGHTNESS], --brightness [BRIGHTNESS] | Turn lights on to the given brightness level. |
-| -X, --off | Turn lights off instead of on |
+| -a<br/>--all | Control all lights on the bridge. |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
+| -t SEC<br/>--transition-time SEC | Set transition time in seconds when turning a light off. This can be fractional in 0.1 second increments. This only applies to the **--off** option. |
+| -B BRIGHTNESS<br/>--brightness BRIGHTNESS | Turn lights on to the given brightness level. |
+| -X<br/>--off | Turn lights off instead of on |
 
 This command turns lights on by default, and off if **--off** is specified. When turning lights off, a transition time can be set using the **--transition-time** option. You can give a fractional number of seconds in 0.1 second increments (a time of 3.27 seconds will be rounded to 3.3).
 
@@ -155,3 +162,71 @@ Lights are turned on to their previous brightness, though this can be overridden
 > Turning lights off using a transition time sets the power-on brightness to 0, so you'll need to explicitly use **--brightness** when turning them back on.
 
 You must specify either a list of lights to control by their **id**, or **--all** to control all lights.
+
+----
+
+#### light-rename
+
+Rename a light.
+
+```
+huemgr light-rename [-b BRIDGE] id name
+```
+
+| option | description |
+|----|----|
+| id | ID of light to rename |
+| name | The new name for the light |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
+
+Changes the name of light ID **id** to **name**.
+
+----
+
+#### light-set
+
+Set a light's color, brightness, effect, and alert mode.
+
+```
+usage: huemgr light-set [-h] [-b BRIDGE] [-a] [-n COLOR_NAME] [-c COLOR_TEMPERATURE] [--xy XY] [-H HUE] [-S SATURATION] [-B BRIGHTNESS] [-A {none,select,lselect}] [-e {none,colorloop}] [-t TRANSITION_TIME] [id [id ...]]
+```
+
+| option | description |
+|---|---|
+| *General options* |
+| -a<br/>--all | Set state for all lights on the bridge |
+|  -t SEC<br/>--transition-time SEC | Set transition time in seconds. Can be fractional in 0.1 second increments. |
+| *Color options* |
+| -c KELVIN<br/>--color-temperature KELVIN | Set a light color temperature in Kelvin from 2000 to 6500, or specify a +/- increment. |
+| -n NAME<br/>--color-name NAME | Set a light to a known, named color (see [huemgr color-name](#huemgr-color-name) |
+| --xy X,Y | Set xy color coordinates as a comma-separated pair, or specify a +/- increment. Cannot be combined with other color modes. |
+| -B BRIGHTNESS<br/>--brightness BRIGHTNESS | Set a brightness from 0 to 1, or specify a +/- increment. |
+| -H HUE<br/>--hue HUE | Set a color hue from 0 to 360, or specify a +/- increment. Hue can be fractional. Cannot be combined with other color modes. |
+| -S SATURATION<br/>--saturation SATURATION | Set a color saturation from 0 to 1, or specify a +/- increment. Cannot be combined with other color modes (e.g. --xy or -c)
+| *Effect options* |
+| -A MODE<br/>--alert MODE | Set an alert effect. Can be "none" to cancel any active effects, "select" to flash off and on once, and "lselect" to flash off and on for 15 seconds. |
+| -e MODE<br/>--dynamic-effect MODE | Set a dynamic effect. Can be "none" to cancel the active effect, or "colorloop" to cycle through all hues at the current brightness and saturation. The "colorloop" mode runs until it is canceled. |
+
+This command sets the state of one or more lights. You can specify lights by **id**, or provide the **--all** option to set the state for all lights.
+
+Lights will ignore states that do not apply to them. For example, a Hue Smart Plug will ignore all options, and a Hue White light only supports alert mode, transition time, and brightness.
+
+Color temperatures are specified in degrees Kelvin, with 2000 corresponding to a very warm white, and 6500 corresponding to a cool white.
+
+Color modes cannot be combined. Choosing a color option sets the specific color mode of the light (assuming that mode is supported).
+
+| Color Options | Color Mode |
+|---|---|
+| --hue, --sat | HSB |
+| --xy | XY |
+| --color-temperature | Color Temperature |
+
+A color can also be selected by name with the **--color-name** options. Selecting a color in this manner will set the color mode to HSB. See [Color Names](#color-names) for more information.
+
+# Color Names
+
+The color naming scheme used by Hue Manager and the huectl Python module is taken from the [Martian Color Wheel](http://warrenmars.com/visual_art/theory/colour_wheel/colour_wheel.htm), a 24-hue color wheel with two shades and two saturation levels per hue, designed by artist Warren Mars.
+
+The names on this color wheel do not always accurately reflect the color emitted by a Hue lamp for a number of reasons, not the least of which is that the light color we see is influenced heavily by the surfaces it illuminates, but it does come close enough and functions as a reasonable "language" for describing colors in terms that are easily understood by a lay person. It is also the only serious attempt to assign workable, human-friendly names to colors via a (reasonably) [scientific process](http://warrenmars.com/visual_art/theory/colour_wheel/evolution/evolution.htm).
+
+It's not perfect, but it's better than pretty much anything else out there.
