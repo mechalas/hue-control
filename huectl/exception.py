@@ -39,46 +39,35 @@ class UnknownOperator(Exception):
 # The Hue Bridge conveniently provides message text for these
 
 class HueGenericException(Exception):
-	def __init__(self, message):
-		msg= message
+	pass
 
 class UnauthorizedUser(HueGenericException):
-	def __init__(self, *args):
-		super().__init__(*args)
+	pass
 
 class InvalidJSON(HueGenericException):
-	def __init__(self, *args):
-		super().__init__(*args)
+	pass
 
 class ResourceUnavailable(HueGenericException):
-	def __init__(self, *args):
-		super().__init__(*args)
+	pass
 
 class MethodNotAvailable(HueGenericException):
-	def __init__(self, *args):
-		super().__init__(*args)
+	pass
 
 class MissingParameters(HueGenericException):
-	def __init__(self, *args):
-		super().__init__(*args)
+	pass
 
 class ParameterUnavailable(HueGenericException):
-	def __init__(self, *args):
-		super().__init__(*args)
+	pass
 
 class ParameterReadOnly(HueGenericException):
-	def __init__(self, *args):
-		super().__init__(*args)
+	pass
 
 class TooMany(HueGenericException):
-	def __init__(self, *args):
-		super().__init__(*args)
+	pass
 
 class PortalRequired(HueGenericException):
-	def __init__(self, *args):
-		super().__init__(*args)
+	pass
 
 class InternalError(HueGenericException):
-	def __init__(self, *args):
-		super().__init__(*args)
+	pass
 
