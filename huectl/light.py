@@ -271,8 +271,7 @@ class HueLightPreset(HueState):
 		elif self.ct is not None:
 			d['ct']= self.ct.ct
 		elif self.xy is not None:
-			d['x']= round(self.xy.x,4)
-			d['y']= round(self.xy.y,4)
+			d['xy']= [ round(self.xy.x,4), round(self.xy.y,4) ]
 
 		return d
 

@@ -845,7 +845,8 @@ def do_scene_dump(args):
 
 		if scene.has_presets():
 			preset= scene.preset(lightid)
-			sdef[secname]= preset.asdict()
+			dpreset= preset.asdict()
+			sdef[secname]= dpreset
 			for k,v in sdef[secname].items():
 				if k == 'hue':
 					sdef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_hue, (0,360)))
@@ -853,6 +854,15 @@ def do_scene_dump(args):
 					sdef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_sat, (0,1)))
 				elif k == 'bri':
 					sdef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_bri, (0,1)))
+				elif k == 'xy':
+					# The configparser module doesn't deal with lists
+					sdef[secname]['x']= str(dpreset['xy'][0])
+					sdef[secname]['y']= str(dpreset['xy'][1])
+
+			# We separate this into x and y
+			if 'xy' in dpreset:
+				del sdef[secname]['xy']
+
 		else:
 			sdef[secname]= {}
 
@@ -1235,7 +1245,7 @@ def init_hue(args):
 		except Exception as e:
 			print(str(e))
 	
-	print('Unable to connect to your bridge {serial} at {addr}')
+	print(f'Unable to connect to your bridge {serial} at {addr}')
 
 	exit(1)
 
