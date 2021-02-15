@@ -81,6 +81,8 @@ Hue Manager understands that a bridge's IP address may change, especially if it'
 ### Group Management
 
 * [**huemgr group**](#huemgr-group): show group information
+* [**huemgr group-add**](#huemgr-group-add): add a group
+* [**huemgr group-delete**](#huemgr-group-delete): delete a group
 * [**huemgr group-lights**](#huemgr-group-lights): add/remove lights from a group
 * [**huemgr group-rename**](#huemgr-group-rename): rename a group
 
@@ -103,6 +105,35 @@ With no arguments, this command will print every group known to the bridge along
 The **--raw** and **--pretty** options print the raw bridge data, as-is or formatted for greater readability, respectively.
 
 Member lights are printed along with their current light state. The light state includes whether the light is on or off, its brightness and color settings, along with an approximate color name for color lights. See [Color Names](#color-names) for more information on how names are chosen.
+
+----
+
+#### huemgr group-add
+
+Create a light group
+
+`huemgr group-add [-b BRIDGE] [-c ROOM_CLASS] [-t TYPE] name lightid [lightid ...]`
+
+| option | description |
+|----|----|
+| name | The name for the group. |
+| lightid | One or more light ID's to add to the group. |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
+| -c CLASS<br/>--room-class CLASS | An optional room class. Only valid when the group **--type** is Room. For a list of supported classes, run `huemgr room-classes`. If not specified, the room class defaults to Other. |
+| -t GROUPTYPE<br/>--type GROUPTYPE | Set an optional group type, which can be one of: LightGroup, Room, Entertainment, Zone. If not specified, the group type defaults to LightGroup. |
+
+----
+
+#### huemgr group-delete
+
+Delete a group.
+
+`huemgr group-delete [-h] [-b BRIDGE] id [id ...]`
+
+| option | description |
+|----|----|
+| id | The ID(s) of the group(s) to delete. |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
 
 ----
 
