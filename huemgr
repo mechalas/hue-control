@@ -751,6 +751,9 @@ def _scene_preset(scene, lightid):
 def _light_state(state):
 	# Turn the state in to a printed string
 
+	if hasattr(state, 'reachable'):
+		if state.reachable == False:
+			return '(unreachable)'
 	if state.on:
 		pdef= 'On'
 	else:
