@@ -615,7 +615,14 @@ def xyY_to_rgb(xyY):
 	g= _from_linear(G)
 	b= _from_linear(B)
 
+	# Normalize again.
 	r, g, b= normalize_rgb(r, g, b)
+
+	# We need to know the gamut if one of these is < 0. Or we can
+	# just clip.
+	r= max(r,0)
+	g= max(g,0)
+	b= max(b,0)
 
 	return r, g, b
 
