@@ -582,7 +582,7 @@ class HueBridge:
 		if not isinstance(sceneid, str):
 			raise TypeError('sceneid: expected str, not '+str(type(scenedef)))
 
-		uri= f'/scenes/{sceneid}'
+		uri= f'scenes/{sceneid}'
 
 		self._scene_api_version_check(scenedef)
 
@@ -598,7 +598,7 @@ class HueBridge:
 			raise huectl.exception.BadResponse(rv)
 
 	def create_scene(self, scenedef, sceneid=None):
-		uri= '/scenes'
+		uri= 'scenes'
 
 		if not isinstance(scenedef, dict):
 			raise TypeError('scenedef: expected dict, not '+str(type(scenedef)))
@@ -606,8 +606,9 @@ class HueBridge:
 		self._scene_api_version_check(scenedef)
 
 		if sceneid is not None:
-			uri= f'/scenes/{sceneid}'
+			uri= f'scenes/{sceneid}'
 
+		print(json.dumps(scenedef, indent=4))
 		rv= self.call(uri, method='POST', data=scenedef)
 
 		if not isinstance(rv, list):
