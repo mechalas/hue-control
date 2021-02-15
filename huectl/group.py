@@ -24,6 +24,16 @@ class HueGroupType:
 	}
 
 	@classmethod
+	def usertype(cls, gtype):
+		return gtype in (HueGroupType.LightGroup, HueGroupType.Room,
+			HueGroupType.Entertainment, HueGroupType.Zone)
+
+	@classmethod
+	def usertypes(cls):
+		return (HueGroupType.LightGroup, HueGroupType.Room,
+			HueGroupType.Entertainment, HueGroupType.Zone)
+
+	@classmethod
 	def supported(cls, gtype, version):
 		if HueGroupType._supported[gtype] <= version:
 			return True
@@ -115,6 +125,16 @@ class HueRoom:
 	}
 
 	@classmethod
+	def supported_byver(cls):
+		d= {}
+		for k,v in HueRoom._supported.items():
+			sv= str(v)
+			if sv not in d:
+				d[sv]= list()
+			d[sv].append(k)
+		return d
+
+	@classmethod
 	def supported(cls, room, version):
 		if HueRoom._supported[room] <= version:
 			return True
@@ -178,7 +198,7 @@ class HueGroup(HueContainer):
 		else:
 			raise TypeError('obj: Expected str or dict, not '+str(type(obj)))
 
-		group= HueGroup(bridge=bridge)
+		group= HueGroup(bridge)
 
 		group.id= str(groupid)
 		group.name= d['name']
@@ -267,11 +287,46 @@ class HueGroup(HueContainer):
 	# Rename a group
 
 	def rename(self, name):
+		# We are a new group that hasn't been saved to the bridge
+		if self.id is None:
+			self.__dict__['name']= name
+			return
+
 		try:
 			self.bridge.set_group_attributes(self.id, name=name)
 			# Update our local name on success
 			self.__dict__['name']= name
 		except Exception as e:
+			raise(e)
+
+	def set_type(self, gtype):
+		# Can't do this to an existing group
+		if self.bridge is not None:
+			raise huectl.exception.InvalidOperation("can't change the type of an existing group")
+
+		if not HueGroupType(gtype):
+			raise huectl.exception.InvalidOperation(f"{gtype}: not a user group type")
+		self.type= gtype
+		if self.type == HueGroupType.Room and self.room_class == None:
+			self.room_class= HueRoom.Other
+
+	def set_room_class(self, rclass):
+		if self.type != HueGroupType.Room:
+			raise huectl.exception.InvalidOperation(f"{gtype}: only group type Room supports a room class")
+
+		oldclass= self.room_class
+		self.room_class= rclass
+
+		if self.id is None:
+			# This is a new group that hasn't been written to the bridge
+			return
+
+		# Commit the change. Revert if there's a failure
+		kwargs['class']= rclass
+		try:
+			self.bridge.set_group_attributes(self.id, **kwargs)
+		except Exception as e:
+			self.room_class= oldclass
 			raise(e)
 
 	# Add, remove, or set the lights in a group. Only do the update
@@ -321,6 +376,10 @@ class HueGroup(HueContainer):
 			self._update_lights(oldobj)
 
 	def _update_lights(self, oldlights):
+		# We are a new group that hasn't been saved to the bridge
+		if self.id is None:
+			return 
+
 		# Revert if there's a failure
 		try:
 			self.bridge.set_group_attributes(self.id,
@@ -329,3 +388,15 @@ class HueGroup(HueContainer):
 			self.lights= oldlights
 			raise(e)
 	
+	# Save a new group to the bridge
+	def save(self):
+		if self.id is None:
+			raise InvalidOperation('save: only allowed for new groups')
+
+		# If this fails, an exception is thrown so we won't continue on
+		groupid= self.bridge.create_group(self.asdict())
+
+		# Set the id to indicate it's not longer a new group.
+		self.id= groupid
+
+

@@ -388,13 +388,35 @@ class HueBridge:
 
 		errors= []
 		for elem in rv:
-			if 'error' in elem:
+			if 'success' in rv:
+				newid= rv['success']['id']
+			elif 'error' in elem:
 				errors.append(elem[error].keys()[0])
 
 		if len(errors):
 			raise huectl.exception.AttrsNotSet(errors)
 
-		return True
+		# Return the group ID
+		return newid
+
+	def delete_group(self, groupid):
+		rv= self.call(f'groups/{groupid}', method='DELETE')
+
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(rv)
+
+		if not len(rv):
+			raise huectl.exception.BadResponse(rv)
+
+		errors= []
+		for elem in rv:
+			if 'success' in rv:
+				newid= rv['success']['id']
+			elif 'error' in elem:
+				errors.append(elem[error].keys()[0])
+
+		if len(errors):
+			raise huectl.exception.AttrsNotSet(errors)
 
 	# Lights
 	#--------------------

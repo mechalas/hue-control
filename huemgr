@@ -1,7 +1,7 @@
 #! /usr/bin/python3
 
 from huectl.bridge import HueBridge, HueBridgeSearch, HueDeviceScanResults
-from huectl.group import HueGroup, HueGroupType
+from huectl.group import HueGroup, HueGroupType, HueRoom
 from huectl.scene import HueScene, HueSceneType
 from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange, HueColorMode
 from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb, map_range
@@ -252,6 +252,50 @@ def do_bridge_search(args):
 #----------------------------------------------------------------------------
 # Groups
 #----------------------------------------------------------------------------
+
+def do_room_classes(args):
+	rclasses= HueRoom.supported_byver()
+	verlist= sorted(rclasses.keys())
+
+	for ver in verlist:
+		print(f'Room Classes in API version {ver}:')
+		for rc in sorted(rclasses[ver]):
+			print(f'   {rc}')
+
+def do_group_del(args):
+	hue= init_hue(args)
+
+	for groupid in args.id:
+		try:
+			hue.delete_group(groupid)
+			print(f'Deleted group {groupid}')
+		except Exception as e:
+			print(str(e))
+			print(f'Could not delete group {groupid}')
+
+def do_group_add(args):
+	hue= init_hue(args)
+
+	# Get our lights
+	lights= hue.get_all_lights()
+
+	group= HueGroup(hue)
+	group.rename(args.name)
+
+	if args.type:
+		group.set_type(args.type)
+
+		if args.type == HueGroupType.Room and args.room_class is not None:
+			group.set_room_class(args.room_class)
+
+	try:
+		group.save()
+	except Exception as e:
+		print(str(e))
+		print('Could not add group')
+		exit(1)
+	
+	print('Created group {args.nane} with id {groupid}')
 
 def do_group_edit(args):
 	hue= init_hue(args)
@@ -1381,6 +1425,29 @@ parser_group.add_argument('-s', '--sort', choices=['name','id','type'],
 parser_group.add_argument('id', nargs='*', help='Group IDs')
 parser_group.set_defaults(func=do_group)
 
+# add
+
+parser_group_add= subparsers.add_parser('group-add',
+	help='Rename a group')
+standard_args(parser_group_add, 'bridge')
+parser_group_add.add_argument('-c', '--room-class', 
+	help='Room class. Only valid when --type is set to Room. For a list of supported classes, run "huemgr room-classes". Default room class is Other.')
+parser_group_add.add_argument('-t', '--type', 
+	choices=HueGroupType.usertypes(), help=f'Group type. Default is a {HueGroupType.LightGroup}.')
+parser_group_add.add_argument('name', nargs=1, help='New group name')
+parser_group_add.add_argument('lightid', nargs='+',
+	help="Light IDs to add to the group")
+parser_group_add.set_defaults(func=do_group_add)
+
+# delete
+
+parser_group_del= subparsers.add_parser('group-delete',
+	help='Delete a group')
+standard_args(parser_group_del, 'bridge')
+parser_group_del.add_argument('id', nargs='+',
+	help='Group ID(s) of the group(s) to delete')
+parser_group_del.set_defaults(func=do_group_del)
+
 # rename
 
 parser_group_rename= subparsers.add_parser('group-rename',
@@ -1636,6 +1703,13 @@ parser_color.add_argument('-t', '--to-color', choices=['xyY','hsb','rgb'],
 	required=True, help='System to convert to')
 parser_color.add_argument('color', help='A color coordinate as comma-separated values. xyY are from 0 to 1, h is from 0 to 360, sat and bri are from 0 to 1, rgb are from 0 to 255, and ct is a color temperature in Kelvin.')
 parser_color.set_defaults(func=do_color)
+
+# Misc
+#----------------------------------------
+
+parser_room_classes= subparsers.add_parser('room-classes',
+	help='List supported room classes')
+parser_room_classes.set_defaults(func=do_room_classes)
 
 #----------------------------------------
 # Parse and go
