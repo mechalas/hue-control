@@ -687,7 +687,7 @@ def do_scene(args):
 
 				scenes[sceneid]= scene
 
-		if args.raw:
+		if args.raw or args.pretty:
 			return
 
 	if args.sort:
