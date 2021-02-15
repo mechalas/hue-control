@@ -568,7 +568,7 @@ def rgb_to_xyY(rgb):
 	G= _to_linear(g)
 	B= _to_linear(b)
 
-	# Now convert to xyz using the D65 transformation matrix
+	# Now convert to XYZ using the D65 transformation matrix
 
 	X= R*0.649926 + G*0.103455 + B*0.197109
 	Y= R*0.234327 + G*0.743075 + B*0.022598
@@ -598,19 +598,44 @@ def xyY_to_rgb(xyY):
 	X= (Y/y)*x
 	Z= (Y/y)*z
 
+	# Using the D65 transformation
+
 	R=  X*1.656492 - Y*0.354851 - Z*0.255038
 	G= -X*0.707196 + Y*1.655397 + Z*0.036152
 	B=  X*0.051713 - Y*0.121364 + Z*1.011530
+
+	# Normalize by the largest value that is >1.0
+	R, G, B= normalize_rgb(R, G, B)
 
 	# Monitors actually use sRGB, so we need to convert back
 	# from linear RGB. It's also possible to get a color that
 	# is outside the RGB gamut, so deal with that, too.
 
-	r= min(1,max(0,_from_linear(R)))
-	g= min(1,max(0,_from_linear(G)))
-	b= min(1,max(0,_from_linear(B)))
+	r= _from_linear(R)
+	g= _from_linear(G)
+	b= _from_linear(B)
+
+	r, g, b= normalize_rgb(r, g, b)
 
 	return r, g, b
+
+# Normalize RGB to the range 0 to 1 using the largest value > 1
+
+def normalize_rgb(R,G,B):
+	if R>1.0 and R>B and R>G:
+		R= 1.0
+		G/= R
+		B/= R
+	elif G>R and G>1.0 and G>B:
+		R/= G
+		G= 1.0
+		B/= G
+	elif B>R and B>G and B>1.0:
+		R/= B
+		G/= B
+		B= 1.0
+
+	return R, G, B
 
 # HSB is just a transform of RGB
 
