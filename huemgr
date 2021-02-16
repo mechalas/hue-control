@@ -797,18 +797,19 @@ def do_scene_dump(args):
 	scene= hue.get_scene(args.id)
 
 	sdef= configparser.ConfigParser(interpolation=None, default_section='scene')
-	sdef['scene']['id']= scene.id
+	sdef['readonly']= {}
 	sdef['scene']['name']= scene.name
 	if scene.transitiontime is not None:
 		sdef['scene']['transitiontime']= str(scene.transitiontime)
+
 	if hasattr(scene, 'group'):
 		if scene.group is not None:
-			sdef['scene']['group']= str(scene.group)
+			sdef['readonly']['group']= str(scene.group)
 	if hasattr(scene, 'type'):
 		if scene.type is not None:
-			sdef['scene']['type']= scene.type
+			sdef['readonly']['type']= scene.type
 	if hasattr(scene, 'recycle'):
-		sdef['scene']['recycle']= str(scene.recycle)
+		sdef['readonly']['recycle']= str(scene.recycle)
 
 	# Do we have lightstates?
 	if scene.has_presets():
@@ -820,7 +821,8 @@ def do_scene_dump(args):
 	try:
 		appdata= scene.application_data()
 		if len(appdata):
-			sdef['appdata']= appdata
+			sdef['appdata']['version']= appdata['version']
+			sdef['appdata']['data']= appdata['data']
 	except:
 		pass
 
@@ -879,6 +881,8 @@ def do_scene_load(args):
 	sdef= configparser.ConfigParser(interpolation=None)
 	hue= init_hue(args)
 	sceneid= None
+	errors= False
+	newscene= True
 
 	try:
 		sdef.read_file(open(args.file))
@@ -886,24 +890,61 @@ def do_scene_load(args):
 		print(f'{args.file}: {e}')
 		exit(1)
 
+	if 'scene' not in sdef:
+		print("[scene] section is required")
+		exit(1)
+
 	if args.scene_id:
 		sceneid= args.scene_id
-	else:
-		if 'id' in sdef['scene']:
-			sceneid= sdef['scene']['id']
+		newscene= False
 
 	# Convert to a dictionary
 
-	d= {
-		'name': sdef['scene']['name'],
-		'recycle': sdef['scene'].getboolean('recycle')
-	}
+	d= dict()
+
+	if 'name' in sdef['scene']:
+		d['name']= sdef['scene']['name']
+
+	if 'recycle' in sdef['scene']:
+		if not newscene:
+			print("Can't change recycle parameter of an existing scene")
+			errors= True
+		else:
+			d['recycle']= sdef['scene'].getboolean('recycle')
+
 	if 'group' in sdef['scene']:
-		d['group']= sdef['scene']['group']
+		if not newscene:
+			print("Can't change the group of an existing scene")
+			errors= True
+		else:
+			d['group']= sdef['scene']['group']
+
 	if 'type' in sdef['scene']:
-		d['type']= sdef['scene']['type']
+		if not newscene:
+			print("Can't change the group of an existing scene")
+			errors= True
+		else:
+			d['type']= sdef['scene']['type']
+
 	if 'transitiontime' in sdef['scene']:
 		d['transitiontime']= sdef['scene'].getint('transitiontime')
+
+	if 'appdata' in sdef:
+		d['appdata']= {}
+		n= 0
+		if 'version' in sdef['appdata']:
+			d['version']= sdef['appdata'].getint('version')
+			n+= 1
+		if 'data' in sdef['appdata']:
+			d['data']= sdef['appdata']['data']
+			n+= 1
+
+		if n == 1:
+			print('Both version and data required for appdata')
+			errors= True
+
+	if errors:
+		exit(1)
 
 	lightstates= dict()
 	lightids= list()

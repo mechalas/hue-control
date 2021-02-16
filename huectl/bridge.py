@@ -230,19 +230,13 @@ class HueBridge:
 		try:
 			groupid= scene.group
 		except APIVersion:
-			# We don't have a group id, so we have to apply
-			# the light state to each light individually.
+			# We don't have a group id
 			groupid= None
 
+		# No group id means we use group 0
+
 		if groupid is None:
-			lstates= scene.lightstates.dict()
-			if not len(lstates):
-				raise huectl.exception.InvalidObject('no lightstats in scene')
-
-			for lightid, state in lstates.items():
-				self.set_light_state(lightid, state)
-
-			return True
+			groupid= 0
 
 		data= {
 			'scene': sceneid
@@ -591,7 +585,7 @@ class HueBridge:
 		if not isinstance(rv, list):
 			raise huectl.exception.BadResponse(rv)
 
-		if len(rv) != 1:
+		if len(rv) < 1:
 			raise huectl.exception.BadResponse(rv)
 
 		if 'success' not in rv[0]:
@@ -614,7 +608,7 @@ class HueBridge:
 		if not isinstance(rv, list):
 			raise huectl.exception.BadResponse(rv)
 
-		if len(rv) != 1:
+		if len(rv) < 1:
 			raise huectl.exception.BadResponse(rv)
 
 		if 'success' not in rv[0]:

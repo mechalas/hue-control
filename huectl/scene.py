@@ -209,10 +209,13 @@ class HueScene(HueContainer):
 				# This scene id doesn't exist
 				pass
 
-			kwargs['sceneid']= self.id
+		d= self.asdict()
 
+		for param in ('id', 'recycle', 'type'):
+			if param in d:
+				del d[param]
 		if newscene:
-			self.bridge.create_scene(self.asdict(), sceneid=self.id)
+			self.bridge.create_scene(d, sceneid=self.id)
 		else:
-			self.bridge.modify_scene(self.asdict(), self.id)
+			self.bridge.modify_scene(d, self.id)
 
