@@ -594,7 +594,7 @@ class HueBridge:
 		if len(rv) != 1:
 			raise huectl.exception.BadResponse(rv)
 
-		if 'success' not in rv:
+		if 'success' not in rv[0]:
 			raise huectl.exception.BadResponse(rv)
 
 	def create_scene(self, scenedef, sceneid=None):
@@ -617,7 +617,7 @@ class HueBridge:
 		if len(rv) != 1:
 			raise huectl.exception.BadResponse(rv)
 
-		if 'success' not in rv:
+		if 'success' not in rv[0]:
 			raise huectl.exception.BadResponse(rv)
 
 	def _scene_api_version_check(self, scenedef):
