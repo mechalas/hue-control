@@ -647,6 +647,10 @@ def do_rule(args):
 def do_scene(args):
 	hue= init_hue(args)
 
+	if args.summary and args.no_light_states:
+		print('Cannot combine --summary with --no-light-states')
+		exit(1)
+
 	groups= dict()
 	scenes= dict()
 
@@ -716,6 +720,9 @@ def do_scene(args):
 				sceneinfo+= f' {scene.name} ({scene.type}: {group.name})'
 			else:
 				sceneinfo+= f' {scene.name} ({scene.type})'
+
+			if scene.locked:
+				sceneinfo+= ' LOCKED'
 
 			if args.summary:
 				if len(lightlist):
