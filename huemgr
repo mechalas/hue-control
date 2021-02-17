@@ -601,7 +601,15 @@ def do_light(args):
 	fmt= '{:'+str(maxw)+'s} {:s} ({:s}) {:s}'
 	for light in lightlist:
 		if light:
-			statedef= _light_state(light.lightstate)
+			state= light.lightstate
+			statedef= _light_state(state)
+			if args.on:
+				if not state.reachable or not state.on:
+					continue
+			elif args.off:
+				if not state.reachable or state.on:
+					continue
+
 			print(fmt.format(light.id, light.name, light.productname, statedef))
 
 #----------------------------------------------------------------------------
@@ -819,10 +827,8 @@ def do_scene_dump(args):
 		sdef['readonly']['recycle']= str(scene.recycle)
 
 	# Do we have lightstates?
-	if scene.has_presets():
-		sdef['scene']['lightstates']= str(True)
-	else:
-		sdef['scene']['lightstates']= str(False)
+	if not scene.has_presets():
+		sdef['readonly']['lightstates']= str(False)
 
 	# Is there appdata?
 	try:
@@ -833,7 +839,13 @@ def do_scene_dump(args):
 	except:
 		pass
 
-	sdef.write(sys.stdout)
+	# Get our destination filehandle
+	if args.file is not None:
+		fh= open(args.file, 'w')
+	else:
+		fh= sys.stdout
+
+	sdef.write(fh)
 
 	for lightid in scene.lights.keys(unresolved=True):
 		if lightid in lights:
@@ -876,13 +888,16 @@ def do_scene_dump(args):
 			sdef[secname]= {}
 
 		# Add light name and color as comments
-		print(f'; {lightname}')
+		print(f'; {lightname}', file=fh)
 		if preset:
 			if preset.color() is not None:
 				cname= preset.color().name()
-				print(f'; color: {cname}')
+				print(f'; color: {cname}', file=fh)
 
-		sdef.write(sys.stdout)
+		sdef.write(fh)
+
+	if args.file is not None:
+		print(f'Scene definition for {scene.name} saved to {args.file}')
 	
 def do_scene_load(args):
 	sdef= configparser.ConfigParser(interpolation=None)
@@ -1543,6 +1558,11 @@ parser_light= subparsers.add_parser('light',
 standard_args(parser_light, 'raw', 'pretty', 'bridge')
 parser_light.add_argument('-s', '--sort', choices=['name','id'],
 	help='Sort list by field')
+group_ex= parser_light.add_mutually_exclusive_group()
+group_ex.add_argument('-O', '--on', action='store_true',
+	help='Only show lights that are on')
+group_ex.add_argument('-X', '--off', action='store_true',
+	help='Only show lights that are off')
 parser_light.add_argument('id', nargs='*', help='Light IDs')
 parser_light.set_defaults(func=do_light)
 
@@ -1679,6 +1699,8 @@ parser_scene_del.set_defaults(func=do_scene_del)
 parser_scene_dump= subparsers.add_parser('scene-dump',
 	help='Dump a scene definition to INI format')
 standard_args(parser_scene_dump, 'bridge')
+parser_scene_dump.add_argument('-f', '--file', 
+	help='Write the scene definition to FILE')
 parser_scene_dump.add_argument('id', help='Scene ID')
 parser_scene_dump.set_defaults(func=do_scene_dump)
 
