@@ -169,6 +169,9 @@ class HueState:
 		self.colormode= None
 
 	def brightness(self, torange=None):
+		if self.bri is None:
+			return None
+
 		if torange is None:
 			return self.bri
 		

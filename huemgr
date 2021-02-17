@@ -776,10 +776,11 @@ def _light_state(state):
 
 	# It's not a dimmable light
 
-	if state.colormode is None:
+	bri= state.brightness(torange=(0,100))
+	if bri is None:
 		return pdef
 
-	pdef+= ' {:d}%'.format(round(state.brightness(torange=(0,100))))
+	pdef+= ' {:d}%'.format(round(bri))
 
 	if state.colormode == HueColorMode.CT:
 		pdef+= ' at {:d}K'.format(state.kelvin())
