@@ -318,6 +318,37 @@ def do_group_rename(args):
 	group= hue.get_group(args.id)
 	group.rename(args.name)
 
+def do_group_power(args):
+	hue= init_hue(args)
+
+	groups= dict()
+	kwargs= dict()
+
+	for groupid in args.id:
+		group= hue.get_group(groupid)
+		groups[groupid]= group
+
+	schange= HueLightStateChange()
+
+	if args.off:
+		state=False
+		onoff= 'off'
+	else:
+		onoff= 'on'
+		state=True
+		if args.brightness is not None:
+			schange.set_brightness(args.brightness)
+
+	schange.set_power(state)
+
+	if args.transition_time is not None:
+		schange.set_transition_time(round(args.transition_time*10))
+
+	for group in groups.values():
+		# Need to print more/better info here
+		print(f'Turning {group.name} {onoff}')
+		group.change_state(schange)
+
 def do_group(args):
 	hue= init_hue(args)
 
@@ -549,8 +580,10 @@ def do_light_power(args):
 	schange= HueLightStateChange()
 
 	if args.off:
+		onoff= 'off'
 		state=False
 	else:
+		onoff= 'on'
 		state=True
 		if args.brightness is not None:
 			schange.set_brightness(args.brightness)
@@ -562,7 +595,7 @@ def do_light_power(args):
 
 	for light in lights.values():
 		# Need to print more/better info here
-		print(light.name)
+		print(f'Turning {light.name} {onoff}')
 		light.change_state(schange)
 
 def do_light(args):
@@ -1530,6 +1563,21 @@ standard_args(parser_group_del, 'bridge')
 parser_group_del.add_argument('id', nargs='+',
 	help='Group ID(s) of the group(s) to delete')
 parser_group_del.set_defaults(func=do_group_del)
+
+# power
+
+parser_group_pwr= subparsers.add_parser('group-power',
+	help='Turn all lights in a group on (default) or off')
+standard_args(parser_group_pwr, 'bridge')
+parser_group_pwr.add_argument('-t', '--transition-time', type=float,
+	help='Set transition time in seconds. This can be fractional, but the minimum granularity is 1/10th of a second, so .1 seconds (100 ms). Note that the transition time only applies when turning lights off.')
+group_ex= parser_group_pwr.add_mutually_exclusive_group()
+group_ex.add_argument('-B', '--brightness', nargs='?', type=float, 
+	help='Turn lights on to the given brightness level.')
+group_ex.add_argument('-X', '--off', action='store_true',
+	help='Turn lights off instead of on')
+parser_group_pwr.add_argument('id', nargs='+', help='Group IDs')
+parser_group_pwr.set_defaults(func=do_group_power)
 
 # rename
 

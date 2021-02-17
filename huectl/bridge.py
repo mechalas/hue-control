@@ -412,6 +412,25 @@ class HueBridge:
 		if len(errors):
 			raise huectl.exception.AttrsNotSet(errors)
 
+	def set_group_state(self, groupid, state):
+		rv= self.call(f'groups/{groupid}/action', method='PUT', data=state)
+
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(rv)
+
+		if not len(rv):
+			raise huectl.exception.BadResponse(rv)
+
+		errors= []
+		for elem in rv:
+			if 'error' in elem:
+				errors.append(elem[error].keys()[0])
+
+		if len(errors):
+			raise huectl.exception.AttrsNotSet(errors)
+				
+		return True
+
 	# Lights
 	#--------------------
 

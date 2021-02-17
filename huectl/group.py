@@ -329,6 +329,9 @@ class HueGroup(HueContainer):
 			self.room_class= oldclass
 			raise(e)
 
+	def change_state(self, schange):
+		return self.bridge.set_group_state(self.id, schange.asdict())
+
 	# Add, remove, or set the lights in a group. Only do the update
 	# on the bridge if something actually changes.
 
