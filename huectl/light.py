@@ -235,7 +235,7 @@ class HueLightPreset(HueState):
 		if self.on:
 			on= 'On'
 
-		s= f'<HueLightState> {on}'
+		s= f'<HueLightPreset> {on}'
 		if not self.on:
 			return s
 
