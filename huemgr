@@ -447,6 +447,9 @@ def do_light_set(args):
 	_device_set(args, 'light')
 
 def _device_set(args, dtype):
+	if dtype not in ('light', 'group'):
+		raise ValueError('dtype: expected light or group')
+
 	hue= init_hue(args)
 
 	devices= dict()
@@ -456,14 +459,15 @@ def _device_set(args, dtype):
 		for deviceid in args.id:
 			if dtype == 'light':
 				device= hue.get_light(deviceid)
-			elif dtype == 'group':
-				device= hue.get_group(deviceid)
 			else:
-				raise ValueError('dtype: excepted group or light')
+				device= hue.get_group(deviceid)
 
 			devices[deviceid]= device
-	elif dtype == 'light' and args.all:
-		devices= hue.get_all_lights()
+	elif args.all:
+		if dtype == 'light':
+			devices= hue.get_all_lights()
+		else:
+			devices= hue.get_group(0)
 	else:
 		print('Nothing to do')
 		return
@@ -551,6 +555,9 @@ def do_light_power(args):
 	_device_power(args, 'light')
 
 def _device_power(args, dtype):
+	if dtype not in ('light', 'group'):
+		raise ValueError('dtype: expected light or group')
+
 	hue= init_hue(args)
 
 	devices= dict()
@@ -560,13 +567,14 @@ def _device_power(args, dtype):
 		for deviceid in args.id:
 			if dtype == 'light':
 				device= hue.get_light(deviceid)
-			elif dtype == 'group':
-				device= hue.get_group(deviceid)
 			else:
-				raise ValueError('dtype: expected light or group')
+				device= hue.get_group(deviceid)
 			devices[deviceid]= device
-	elif dtype == 'light' and args.all:
-		devices= hue.get_all_lights()
+	elif args.all:
+		if dtype == 'light':
+			devices= hue.get_all_lights()
+		else:
+			devices= hue.get_group(0)
 	else:
 		return
 
@@ -1562,6 +1570,8 @@ parser_group_del.set_defaults(func=do_group_del)
 parser_group_pwr= subparsers.add_parser('group-power',
 	help='Turn all lights in a group on (default) or off')
 standard_args(parser_group_pwr, 'bridge')
+parser_group_pwr.add_argument('-a', '--all', action='store_true',
+	help='Control all lights on the bridge.')
 parser_group_pwr.add_argument('-t', '--transition-time', type=float,
 	help='Set transition time in seconds. This can be fractional, but the minimum granularity is 1/10th of a second, so .1 seconds (100 ms). Note that the transition time only applies when turning lights off.')
 group_ex= parser_group_pwr.add_mutually_exclusive_group()
@@ -1587,6 +1597,8 @@ parser_group_set= subparsers.add_parser('group-set',
 	help='Set group attributes')
 standard_args(parser_group_set, 'bridge')
 
+parser_group_set.add_argument('-a', '--all', action='store_true',
+	help='Control all lights on the bridge.')
 parser_group_set.add_argument('-n', '--color-name', type=str,
 	help='Set a group to a known, named color')
 

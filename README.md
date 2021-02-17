@@ -84,7 +84,9 @@ Hue Manager understands that a bridge's IP address may change, especially if it'
 * [**huemgr group-add**](#huemgr-group-add): add a group
 * [**huemgr group-delete**](#huemgr-group-delete): delete a group
 * [**huemgr group-lights**](#huemgr-group-lights): add/remove lights from a group
+* [**huemgr group-power**](#huemgr-group-power): power lights in a group on/off
 * [**huemgr group-rename**](#huemgr-group-rename): rename a group
+* [**huemgr group-set**](#huemgr-group-set): set state for lights in a group
 
 #### huemgr group
 
@@ -152,11 +154,21 @@ Add, remove, and set the members of a light group.
 | -r ID ...<br/>--remove ID ... | Remove one or more lights from the group |
 | -s ID ...<br/>--set ID ... | Set the group membership to the given lights. Cannot be combined with **--add** or **--remove** |
 
-This command edits the lights that are members of the group given by **--groupid**. THe **--groupid** argument is required.
+This command edits the lights that are members of the group given by **--groupid**. The **--groupid** argument is required.
 
 You can both **--add** and **--remove** lights in one command, but these options cannot be combined with **--set**. The **--set** options explicitly sets the membership list to the given light ID's, completely replacing the old list with the new.
 
 > A given light cannot be a member of more than one group with the type "Room". This restriction does not hold for other group types.
+
+----
+
+#### huemgr group-power
+
+Power lights in a group on or off.
+
+`huemgr group-power [-b BRIDGE] [-t TRANSITION_TIME] [-B [BRIGHTNESS] | -X] id [id ...]`
+
+This command functions identically to [huemgr light-power](#huemgr-light-power), except it operates on groups instead of individual lights.
 
 ----
 
@@ -175,6 +187,18 @@ huemgr group-rename [-b BRIDGE] id name
 | -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
 
 Changes the name of group ID **id** to **name**.
+
+----
+
+#### huemgr group-set
+
+Set color, brightness, effect, and alert mode for all lights in a group
+
+```
+usage: huemgr group-set [-h] [-b BRIDGE] [-a] [-n COLOR_NAME] [-c COLOR_TEMPERATURE] [--xy XY] [-H HUE] [-S SATURATION] [-B BRIGHTNESS] [-A {none,select,lselect}] [-e {none,colorloop}] [-t TRANSITION_TIME] [id [id ...]]
+```
+
+This command functions identically to [huemgr light-set](#huemgr-light-set) except it operates on groups instead of individual lights.
 
 ----
 
@@ -554,7 +578,7 @@ This command plays the given scenes. Scenes are recalled in the order they are g
 
 # Color Names
 
-The color naming scheme used by Hue Manager and the huectl Python module is taken from the [Martian Color Wheel](http://warrenmars.com/visual_art/theory/colour_wheel/colour_wheel.htm), a 24-hue color wheel with two shades and two saturation levels per hue, designed by artist Warren Mars.
+The color naming scheme used by Hue Manager and the huectl Python module is taken from the [Martian Color Wheel](http://warrenmars.com/visual_art/theory/colour_wheel/colour_wheel.htm), a 24-hue color wheel with two shades and two saturation levels per hue, providing a total of 120 color names, designed by artist Warren Mars.
 
 The names on this color wheel do not always accurately reflect the color emitted by a Hue lamp for a number of reasons, not the least of which is that the light color we see is influenced heavily by the surfaces it illuminates, but it does come close enough and functions as a reasonable "language" for describing colors in terms that are easily understood by a lay person. It is also the only serious attempt to assign workable, human-friendly names to colors via a (reasonably) [scientific process](http://warrenmars.com/visual_art/theory/colour_wheel/evolution/evolution.htm).
 
