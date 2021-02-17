@@ -815,7 +815,7 @@ def do_scene_dump(args):
 	sdef['readonly']= {}
 	sdef['scene']['name']= scene.name
 	if scene.transitiontime is not None:
-		sdef['scene']['transitiontime']= str(scene.transitiontime)
+		sdef['scene']['transitiontime']= str(scene.transitiontime/10)
 
 	if hasattr(scene, 'group'):
 		if scene.group is not None:
@@ -879,6 +879,8 @@ def do_scene_dump(args):
 					# The configparser module doesn't deal with lists
 					sdef[secname]['x']= str(dpreset['xy'][0])
 					sdef[secname]['y']= str(dpreset['xy'][1])
+				elif k == 'transitiontime':
+					sdef[secname][k]= '{:.1f}'.format(float(v)/10)
 
 			# We separate this into x and y
 			if 'xy' in dpreset:
@@ -949,7 +951,7 @@ def do_scene_load(args):
 			d['type']= sdef['scene']['type']
 
 	if 'transitiontime' in sdef['scene']:
-		d['transitiontime']= sdef['scene'].getint('transitiontime')
+		d['transitiontime']= round(sdef['scene'].getfloat('transitiontime')*10)
 
 	if 'appdata' in sdef:
 		d['appdata']= {}
@@ -1010,6 +1012,8 @@ def do_scene_load(args):
 					v= round(map_range(sdef[sec].getfloat(k), (0,1), HueColorHSB.range_sat))
 				elif k == 'on':
 					v= sdef[sec].getboolean(k)
+				elif k == 'transitiontime':
+					v= round(sdef[sec].getfloat(k)*10)
 				else:
 					v= sdef[sec][k]
 				ls[k]= v
