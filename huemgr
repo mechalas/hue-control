@@ -1426,10 +1426,12 @@ def do_color(args):
 		color= HueColorTemp(float(args.color), kelvin=True)
 
 	if args.to_color == 'xyY':
+		# Use the brightness from the original colorspec, since
+		# xy chromaticity is independant.
 		xyY= color.xyY()
 		newcolor= HueColorxyY(*xyY)
 		print("x={:.4f} y={:.4f} Y={:.4f}".format(newcolor.x(),
-			newcolor.y(), newcolor.brightness()))
+			newcolor.y(), color.brightness(torange=(0,1))))
 	elif args.to_color == 'hsb':
 		hsb= color.hsb()
 		newcolor= HueColorHSB(*hsb)
