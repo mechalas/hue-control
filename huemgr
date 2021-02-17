@@ -319,35 +319,7 @@ def do_group_rename(args):
 	group.rename(args.name)
 
 def do_group_power(args):
-	hue= init_hue(args)
-
-	groups= dict()
-	kwargs= dict()
-
-	for groupid in args.id:
-		group= hue.get_group(groupid)
-		groups[groupid]= group
-
-	schange= HueLightStateChange()
-
-	if args.off:
-		state=False
-		onoff= 'off'
-	else:
-		onoff= 'on'
-		state=True
-		if args.brightness is not None:
-			schange.set_brightness(args.brightness)
-
-	schange.set_power(state)
-
-	if args.transition_time is not None:
-		schange.set_transition_time(round(args.transition_time*10))
-
-	for group in groups.values():
-		# Need to print more/better info here
-		print(f'Turning {group.name} {onoff}')
-		group.change_state(schange)
+	_device_power(args, 'group')
 
 def do_group_set(args):
 	_device_set(args, 'group')
@@ -576,17 +548,25 @@ def _isinc(val):
 	return False
 
 def do_light_power(args):
+	_device_power(args, 'light')
+
+def _device_power(args, dtype):
 	hue= init_hue(args)
 
-	lights= dict()
+	devices= dict()
 	kwargs= dict()
 
 	if len(args.id):
-		for lightid in args.id:
-			light= hue.get_light(lightid)
-			lights[lightid]= light
-	elif args.all:
-		lights= hue.get_all_lights()
+		for deviceid in args.id:
+			if dtype == 'light':
+				device= hue.get_light(deviceid)
+			elif dtype == 'group':
+				device= hue.get_group(deviceid)
+			else:
+				raise ValueError('dtype: expected light or group')
+			devices[deviceid]= device
+	elif dtype == 'light' and args.all:
+		devices= hue.get_all_lights()
 	else:
 		return
 
@@ -606,10 +586,10 @@ def do_light_power(args):
 	if args.transition_time is not None:
 		schange.set_transition_time(round(args.transition_time*10))
 
-	for light in lights.values():
+	for device in devices.values():
 		# Need to print more/better info here
-		print(f'Turning {light.name} {onoff}')
-		light.change_state(schange)
+		print(f'Turning {dtype} {device.name} {onoff}')
+		device.change_state(schange)
 
 def do_light(args):
 	hue= init_hue(args)
