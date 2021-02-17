@@ -1426,13 +1426,15 @@ def standard_args(parser, *arglist):
 		parser.add_argument('-b', '--bridge',
 			help='Bridge to use. Can specify a serial number, friendly name, or address')
 
-	if 'raw' in arglist:
-		parser.add_argument('-r', '--raw', action='store_true',
-			help='Print raw response')
+	if 'raw' in arglist or 'pretty' in arglist:
+		group_raw= parser.add_mutually_exclusive_group()
+		if 'raw' in arglist:
+			group_raw.add_argument('-r', '--raw', action='store_true',
+				help='Print raw response')
 	
-	if 'pretty' in arglist:
-		parser.add_argument('-R', '--pretty', action='store_true',
-			help='Pretty-print raw response')
+		if 'pretty' in arglist:
+			group_raw.add_argument('-R', '--pretty', action='store_true',
+				help='Pretty-print raw response')
 
 
 #===========================================================================
