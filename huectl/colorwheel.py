@@ -56,6 +56,9 @@ def colorfamilies():
 
 # Return all colors in a family
 def colorfamily(name):
+	name= name.replace('_', ' ')
+	name= name.replace('-', ' ')
+
 	try:
 		i= families.index(name)
 		return colors[i]
@@ -65,6 +68,9 @@ def colorfamily(name):
 # Turn a color name into HSV values
 
 def colordef(name):
+	name= name.replace('_', ' ')
+	name= name.replace('-', ' ')
+
 	fidx= 0
 	for colorset in colors:
 		if name in colorset:
