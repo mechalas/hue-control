@@ -1102,6 +1102,7 @@ def do_schedule(args):
 	hue= init_hue(args)
 
 	scheds= dict()
+	scenes= dict()
 
 	if not len(args.id):
 		if args.raw or args.pretty:
@@ -1121,14 +1122,18 @@ def do_schedule(args):
 		if args.raw:
 			return
 
+	scenes= hue.get_all_scenes()
+
 	for sched in scheds.values():
 		print(sched)
-		target= sched.command.target()
-		print("    "+str(target))
-		if isinstance(target, HueGroup):
-			if 'scene' in sched.command.body:
-				scene= hue.get_scene(sched.command.body['scene'])
-				print("        "+str(scene))
+		cmd= sched.command
+#		target= sched.command.target()
+		print(f"    {cmd}")
+#		if isinstance(target, HueGroup):
+#			if 'scene' in sched.command.body:
+#				sceneid= sched.command.body['scene']
+#				scene= scenes[sceneid]
+#				print("        "+str(scene))
 		print()
 
 
@@ -1372,9 +1377,9 @@ def do_color_name(args):
 				print(f'{color}: {h},{s},{b}')
 				cidx+= 1
 			fidx+= 1
-	elif args.families:
-		for fam in colorwheel.colorfamilies():
-			print('{:s}: {:s}'.format(fam, ', '.join(colorwheel.colorfamily(fam))))
+	elif args.hues:
+		for huec in colorwheel.hues():
+			print('{:s}: {:s}'.format(huec, ', '.join(colorwheel.hue_colors(huec))))
 	else:
 		for name in args.name:
 			try:
@@ -1865,8 +1870,8 @@ parser_color_name= subparsers.add_parser('color-name',
 	help='Obtain color values for known color names')
 parser_color_name.add_argument('-a', '--all', action='store_true',
 	help='Get all known colors')
-parser_color_name.add_argument('-f', '--families', action='store_true',
-	help='List color families')
+parser_color_name.add_argument('-H', '--hues', action='store_true',
+	help='List the colors, grouped by color hue')
 parser_color_name.add_argument('name', nargs='*', 
 	help='Color name[s]')
 parser_color_name.set_defaults(func=do_color_name)

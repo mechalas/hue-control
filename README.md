@@ -72,9 +72,15 @@ Hue Manager understands that a bridge's IP address may change, especially if it'
 
 > This documentation is not complete. For the full set of commands, see `huemgr --help`, though not all of them have been fully implemented.
 
+### Hue System Control Commands
+
 * [Group management](#group-management)
 * [Light management](#light-management)
 * [Scene management](#scene-management)
+
+### Utility Commands
+
+* [Color information](#color-info)
 
 ----
 
@@ -327,7 +333,7 @@ usage: huemgr light-set [-h] [-b BRIDGE] [-a] [-n COLOR_NAME] [-c COLOR_TEMPERAT
 |  -t SEC<br/>--transition-time SEC | Set transition time in seconds. Can be fractional in 0.1 second increments. |
 | *Color options* |
 | -c KELVIN<br/>--color-temperature KELVIN | Set a light color temperature in Kelvin from 2000 to 6500, or specify a +/- increment. |
-| -n NAME<br/>--color-name NAME | Set a light to a known, named color (see [huemgr color-name](#huemgr-color-name) |
+| -n NAME<br/>--color-name NAME | Set a light to a known, named color (see [huemgr color-name](#huemgr-color-name)) |
 | --xy X,Y | Set xy color coordinates as a comma-separated pair, or specify a +/- increment. Cannot be combined with other color modes. |
 | -B BRIGHTNESS<br/>--brightness BRIGHTNESS | Set a brightness from 0 to 1, or specify a +/- increment. |
 | -H HUE<br/>--hue HUE | Set a color hue from 0 to 360, or specify a +/- increment. Hue can be fractional. Cannot be combined with other color modes. |
@@ -576,10 +582,62 @@ Play a light scene.
 
 This command plays the given scenes. Scenes are recalled in the order they are given, so if a light appears in multiple scenes the last scene will win.
 
+----
+
+### Color Information Commands
+
+* huemgr color
+* huemgr color-name
+
+----
+
+#### huemgr color
+
+Convert color specs between color systems/modes.
+
+`huemgr color -f {xyY,hsb,rgb,ct} -t {xyY,hsb,rgb} color`
+
+| option | description |
+|----|----|
+| color | A color spec as a comma-separated value. The specifics of the individual color components is depdenant on the source color system (**--from**). See the **Color Specs**, below. |
+| -f MODE<br/>--from MODE | The color system to convert from. The options are: xyY, hsb, rgb, ct |
+| -t MODE<br/>--to MODE | The color system to convert to. The options are: xyY, hsb, rgb. When using `rgb` mode the output will include the hex HTML format. |
+
+*Color Specs*
+
+The **color** option is a comma-separated value, and the source color system defines its components as follows:
+
+| Color system | Format | Ranges |
+|---|---|---|
+| ct | K | K: _int_ from 2000 to 6514 (K is degrees in Kelvin) |
+| hsb | H,S,B | H: _float_ from 0 to 360<br/>S: _float_ from 0 to 1<br/>B: _float_ from 0 to 1 |
+| rgb | R,G,B | All: _int_ from 0 to 255 |
+| xyY | x,y,Y | All: _float_ from 0 to 1 (Y is the brightness) |
+
+While it is technically possible to convert from a color to an equivalent color temperature, this is only accurate for small deviations from the [Planckian locus](https://en.wikipedia.org/wiki/Planckian_locus) and thus it's not supported by this command.
+
+----
+
+#### huemgr color-name
+
+Get named color information.
+
+`huemgr color-name [-a] [-H] [name [name ...]]`
+
+| option | description |
+|----|----|
+| name | The color name to look up.  |
+| -a<br/>--all | Print all known color names, grouped by hue. |
+| -H<br/>--hues | Print all known color hues. |
+
+Without any options, this command returns the hue, saturation, and brightness values for the named color(s). Multi-part color names can be specified with dashes, underscores, or spaces (e.g. `dark blue`, `dark-blue`, and `dark_blue` are equivalent).
+
+All known color names, grouped by and in order of hue, can be returned with the **--all** option. The color hue families can also be retrieved, ordered by hue, with the **--hues** option.
+
 # Color Names
 
 The color naming scheme used by Hue Manager and the huectl Python module is taken from the [Martian Color Wheel](http://warrenmars.com/visual_art/theory/colour_wheel/colour_wheel.htm), a 24-hue color wheel with two shades and two saturation levels per hue, providing a total of 120 color names, designed by artist Warren Mars.
 
-The names on this color wheel do not always accurately reflect the color emitted by a Hue lamp for a number of reasons, not the least of which is that the light color we see is influenced heavily by the surfaces it illuminates, but it does come close enough and functions as a reasonable "language" for describing colors in terms that are easily understood by a lay person. It is also the only serious attempt to assign workable, human-friendly names to colors via a (reasonably) [scientific process](http://warrenmars.com/visual_art/theory/colour_wheel/evolution/evolution.htm).
+The names on this color wheel do not always accurately reflect the color emitted by a Hue lamp for a number of reasons, not the least of which is that the light color we see is influenced heavily by the surfaces it illuminates, but it does come close enough and functions as a reasonable "language" for describing colors in terms that are easily understood by a lay person. It is also the only serious attempt to assign workable, human-friendly names to colors via a (reasonably) [scientific process](http://warrenmars.com/visual_art/theory/colour_wheel/evolution/evolution.htm). It's not perfect, but it's better than pretty much anything else out there.
 
-It's not perfect, but it's better than pretty much anything else out there.
+Some color names have multiple parts (e.g. "dark blue"). For convenience, spaces, dashes, and underscores are interchangeable, so "dark blue" is the same as "dark-blue" and "dark_blue".

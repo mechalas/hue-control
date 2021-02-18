@@ -6,7 +6,7 @@
 # occasionally will be off, esp in the yellow-green space since Hue
 # lights tend to have a narrow green gamut.
 
-families= ( 'red', 'orange', 'tumeric', 'yellow cheese', 'yellow', 
+_hues= ( 'red', 'orange', 'tumeric', 'yellow cheese', 'yellow', 
 	'green grape', 'chartreuse', 'green pea', 'green', 'clover',
 	'emerald', 'malachite', 'cyan', 'turquoise', 'azure', 'royal blue',
 	'blue', 'dioxazine', 'violet', 'aniline', 'magenta', 'bougainvillea',
@@ -51,19 +51,20 @@ hueangles= (0, 15, 36, 46, 55, 62.5, 68, 87, 109, 133.5, 153.5, 166, 176, 185, 1
 
 pts=((0.25,1.0),(0.50,1.0),(1.0,1.0),(1.0,0.66),(1.0,0.33))
 
-def colorfamilies():
-	return families
+# Return all hues
+def hues():
+	return _hues
 
-# Return all colors in a family
-def colorfamily(name):
+# Return all colors in a hue
+def hue_colors(name):
 	name= name.replace('_', ' ')
 	name= name.replace('-', ' ')
 
 	try:
-		i= families.index(name)
+		i= _hues.index(name)
 		return colors[i]
 	except ValueError:
-		raise ValueError(f'unknown color family {name}')
+		raise ValueError(f'unknown color hue {name}')
 
 # Turn a color name into HSV values
 
