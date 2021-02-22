@@ -176,15 +176,28 @@ class HueBridge:
 					# new lights, in seconds. This is defined by the 
 					# bridge API.
 
-	def __init__(self, address, **kwargs):
-		self.user_id= None
+	def __init__(self, address, user_id=None, serial=None):
+		self.user_id= '0'
 		self.address= address
 		self.config= None
 		self.proto= None
 		self.request_defaults= dict()
 
-		if 'user_id' in kwargs:
-			self.set_user_id(kwargs['user_id'])
+		# If we were sent a serial number, verify that we are talking to the
+		# correct bridge before we send a user id.
+
+		if serial is not None:
+			bserial= self.serial_number()
+			if serial != bserial:
+				raise ValueError(f'Bridge serial number {bserial} does not match expected serial number {serial}')
+
+			# Clear the minimal configuration so we can load the full
+			# configuration using our user id.
+
+			self.config= None
+
+		if user_id is not None:
+			self.set_user_id(user_id)
 
 		self._load_config()
 
@@ -670,12 +683,12 @@ class HueBridge:
 	# Schedules
 	#--------------------
 
-	def get_schedule(self, schedid, raw=False):
-		data= self.call(f'schedules/{schedid}')
+	def get_schedule(self, scheduleid, raw=False):
+		data= self.call(f'schedules/{scheduleid}')
 		if raw:
 			return data
 
-		return HueSchedule(schedid=schedid, bridge=self, obj=data)
+		return HueSchedule.parse_definition(data, scheduleid=scheduleid, bridge=self)
 
 	def get_all_schedules(self, raw=False):
 		data= self.call('schedules', raw=raw)
@@ -683,11 +696,24 @@ class HueBridge:
 			return data
 
 		schedules= dict()
-		for schedid, scheduledata in data.items():
-			sched= HueSchedule(schedid=schedid, bridge=self, obj=scheduledata)
-			schedules[schedid]= sched
+		for scheduleid, scheduledata in data.items():
+			sched= HueSchedule.parse_definition(scheduledata, scheduleid=scheduleid, bridge=self)
+			schedules[scheduleid]= sched
 
 		return schedules
+
+	def delete_schedule(self, scheduleid):
+		rv= self.call(f'schedules/{scheduleid}', method='DELETE')
+
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(str(rv))
+		if len(rv) != 1:
+			raise huectl.exception.BadResponse(str(rv))
+
+		if 'success' in rv[0]:
+			return True
+
+		raise huectl.exception.BadResponse(str(rv[0]))
 
 	# Sensors
 	#--------------------

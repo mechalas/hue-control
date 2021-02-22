@@ -4,6 +4,7 @@ from huectl.bridge import HueBridge, HueBridgeSearch, HueDeviceScanResults
 from huectl.group import HueGroup, HueGroupType, HueRoom
 from huectl.scene import HueScene, HueSceneType
 from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange, HueColorMode
+from huectl.time import HueDateTime, HueRecurringTime, HueTimeInterval
 from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb, map_range
 import huectl.colorwheel as colorwheel
 from argparse import ArgumentParser
@@ -1098,6 +1099,16 @@ def do_scene_play(args):
 # Schedules
 #----------------------------------------------------------------------------
 
+def do_schedule_delete(args):
+	hue= init_hue(args)
+
+	for scheduleid in args.id:
+		try:
+			hue.delete_schedule(scheduleid)
+			print(f'Schedule {scheduleid} deleted')
+		except Exception as e:
+			print(e)
+
 def do_schedule(args):
 	hue= init_hue(args)
 
@@ -1125,6 +1136,15 @@ def do_schedule(args):
 	scenes= hue.get_all_scenes()
 
 	for sched in scheds.values():
+		if args.type:
+			skip= True
+			if sched.localtime is not None:
+				if isinstance(sched.localtime, (HueRecurringTime, HueDateTime, HueTimeInterval)):
+					skip= False
+
+			if skip:
+				continue
+
 		print(sched)
 		cmd= sched.command
 #		target= sched.command.target()
@@ -1330,9 +1350,10 @@ def init_hue(args):
 	# doesn't work, do a quick search to see if it's moved.
 
 	try:
-		hue= HueBridge(addr, user_id=user_id)
+		hue= HueBridge(addr, user_id=user_id, serial=serial)
 		return hue
-	except:
+	except Exception as e:
+		print(str(e))
 		pass
 
 	if retry:
@@ -1824,8 +1845,19 @@ parser_scene_load.set_defaults(func=do_scene_load)
 parser_sched= subparsers.add_parser('schedule',
 	help='List schedule definitions')
 standard_args(parser_sched, 'raw', 'pretty', 'bridge')
+parser_sched.add_argument('-t', '--type', choices=['routine'],
+	help='Only show schedules of the given type.')
 parser_sched.add_argument('id', nargs='*', help='Schedule IDs')
 parser_sched.set_defaults(func=do_schedule)
+
+# schedule-delete
+
+parser_sched_del= subparsers.add_parser('schedule-delete',
+	help='Delete a schedule')
+standard_args(parser_sched_del, 'bridge')
+parser_sched_del.add_argument('id', nargs='*', help='Schedule IDs')
+parser_sched_del.set_defaults(func=do_schedule_delete)
+
 
 # Sensor management
 #--------------------
