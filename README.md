@@ -38,6 +38,9 @@ A command-line client, _huemgr_, for controlling your Hue system with  supports 
 
 > Hue Manager is a work in progress. There are no official releases yet, and the functionality and interface are still evolving.
 
+* [Getting Started](#getting-started)
+* [Command Reference](#command-reference)
+
 ## Getting Started
 
 Use the `bridge-search` command to locate your bridge. If your bridge is not brand new, you can probably do a quick search which queries the MeetHue portal. This method won't return a bridge name, but it will give you the serial number and IP address. For example:
@@ -361,11 +364,11 @@ A color can also be selected by name with the **--color-name** options. Selectin
 ### Scene Management
 
 * [huemgr scene](#huemgr-scene)
+* [huemgr scene-rename](#huemgr-scene-capture)
 * [huemgr scene-delete](#huemgr-scene-delete)
 * [huemgr scene-dump](#huemgr-scene-dump)
 * [huemgr scene-load](#huemgr-scene-load)
 * [huemgr scene-play](#huemgr-scene-play)
-* huemgr scene-rename
 
 ----
 
@@ -405,6 +408,26 @@ Scene listings includes the following:
    * light state preset (unless **--no-light-state** is given)
 
 A locked scene is one that is part of a rule or schedule. To unlock a scene, you must remove it from all of the rules and schedules that reference it.
+
+----
+
+#### huemgr scene-capture
+
+Create a scene from current light states.
+
+`huemgr scene-capture [-b BRIDGE] [ [-G GROUP_ID] | [-l LIGHT_LIST] [-g GROUP_LIST] ] name`
+
+| option | description |
+|----|----|
+| name | The name of the new scene. |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
+| -G GROUPID<br/>--group-scene GROUPID | Creates a scene of type **GroupScene** for the group referenced by GROUPID.  This option cannot be combined with -g or -l. |
+| -g GROUP_LIST<br/>--group-list GROUP_LIST | Creates a scene of type **LightScene** from the current state of the lights in GROUP_LIST. GROUP_LIST is a comma-separated list of group ID's. Can be combined with -l.|
+| -l LIGHT_LIST<br/>--light-list LIGHT_LIST | Creates a scene of type **LightScene** from the current state of the lights in LIGHTS_LIST. LIGHT_LIST is a comma-separated list of light ID's. Can be combined with -g. |
+
+This command creates a new scene from the light states of the specified light(s) and/or group(s). The list of light and group ID's is provided on the command line. By default it will create a scene of type **LightScene**, which allows you to specify arbitrary lights on the bridge.
+
+The **--group-scene** option can be used to create a scene type of **GroupScene** for the given group ID. A GroupScene is tied to its group and thus its light members cannot be changed directly. When new lights are added to a group, they will be assigned a default state for each GroupScene that is tied to the group. A GroupScene is automatically deleted if its group is removed or emptied.
 
 ----
 
