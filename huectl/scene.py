@@ -29,7 +29,7 @@ class HueScene(HueContainer):
 			scene.id= sceneid
 
 		for attr in ('name', 'owner', 'type', 'group', 'recycle', 'locked',
-			'appdata', 'picture', 'version', 'image'):
+			'appdata', 'picture', 'version', 'image', 'transitiontime'):
 			if attr in d:
 				scene.__dict__[attr]= d[attr]
 
@@ -114,6 +114,7 @@ class HueScene(HueContainer):
 		if apiver >= '1.11':
 			if self.recycle is not None:
 				d['recycle']= self.recycle
+
 			appdata= self.application_data()
 			if len(appdata):
 				d['appdata']= self.application_data()
@@ -211,11 +212,11 @@ class HueScene(HueContainer):
 
 		d= self.asdict()
 
-		for param in ('id', 'recycle', 'type'):
-			if param in d:
-				del d[param]
 		if newscene:
 			self.bridge.create_scene(d, sceneid=self.id)
 		else:
+			for param in ('id', 'recycle', 'type'):
+				if param in d:
+					del d[param]
 			self.bridge.modify_scene(d, self.id)
 

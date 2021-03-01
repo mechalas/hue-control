@@ -993,10 +993,10 @@ def do_scene_load(args):
 		d['appdata']= {}
 		n= 0
 		if 'version' in sdef['appdata']:
-			d['version']= sdef['appdata'].getint('version')
+			d['appdata']['version']= sdef['appdata'].getint('version')
 			n+= 1
 		if 'data' in sdef['appdata']:
-			d['data']= sdef['appdata']['data']
+			d['appdata']['data']= sdef['appdata']['data']
 			n+= 1
 
 		if n == 1:

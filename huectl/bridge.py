@@ -634,6 +634,7 @@ class HueBridge:
 		if sceneid is not None:
 			uri= f'scenes/{sceneid}'
 
+		print(uri)
 		print(json.dumps(scenedef, indent=4))
 		rv= self.call(uri, method='POST', data=scenedef)
 
@@ -906,6 +907,7 @@ class HueBridge:
 				# case one is caught.
 
 				if 'error' in item:
+					print(obj)
 					self._error(item['error'])
 
 		return obj
