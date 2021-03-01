@@ -847,7 +847,7 @@ class HueBridge:
 		if len(rv) != 1:
 			raise huectl.exception.BadResponse(rv)
 
-		if 'success' not in rv:
+		if 'success' not in rv[0]:
 			raise huectl.exception.BadResponse(rv)
 
 	def create_user(self, appname='Python', device='CLI', client_key=None):

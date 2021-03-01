@@ -1566,6 +1566,20 @@ def do_color(args):
 		r, g, b= list(map(lambda x: int(x*255), color.rgb()))
 		print(f'{r},{g},{b} #{r:02x}{b:02x}{g:02x}')
 
+#----------------------------------------
+# Misc
+#----------------------------------------
+
+def do_touchlink(args):
+	hue= init_hue(args)
+
+	print_wrap("Performing a touchlink action. The nearest light in range will be added to the bridge...")
+
+	hue.touchlink()
+
+	print("Done!")
+	print()
+	print_wrap("Run 'huemgr light-add -X' to add the new light. If it doesn't show, move the light as close to the bridge as possible, ensure it's powered on, and re-run 'huemgr touchlink'.")
 
 #----------------------------------------
 # Util functions
@@ -1790,7 +1804,7 @@ parser_light_add= subparsers.add_parser('light-add',
 	help='Search for new lights and add them to the bridge')
 standard_args(parser_light_add, 'bridge')
 parser_light_add.add_argument('-X', '--no-scan', action='store_true',
-	help='Just report the light(s) found during hte last search without starting a new one')
+	help='Just report the light(s) found during the last search without starting a new one')
 parser_light_add.add_argument('serial', nargs='*',
 	help='Optional list of serial numbers to add (maximum of 10)')
 parser_light_add.set_defaults(func=do_light_add)
@@ -1987,6 +2001,14 @@ standard_args(parser_config_get, 'raw', 'pretty', 'bridge')
 parser_config_get.add_argument('-a', '--all', action='store_true',
 	help='Dump the full datastore (implies --raw).')
 parser_config_get.set_defaults(func=do_config_get)
+
+# Touchlink
+#--------------------
+
+parser_touchlink= subparsers.add_parser('touchlink',
+	help='Perform a touchlink action. This will add the closest lamp (within range) to the bridge. Follow up with a light-add command.')
+standard_args(parser_touchlink, 'bridge')
+parser_touchlink.set_defaults(func=do_touchlink)
 
 # Bridge whitelist management
 #--------------------
