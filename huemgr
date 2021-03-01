@@ -836,6 +836,48 @@ def _light_state(state):
 
 	return pdef
 
+
+# Capture current light states to a scene.
+
+def do_scene_capture(args):
+
+	# Basic arg validation
+	if args.group_scene:
+		if args.group_list or args.light_list:
+			print("can't combine --group-scene with other selections")
+			exit(1)
+	else:
+		if args.light_list is None and args.group_list is None:
+			print('No lights or groups specified. Nothing to do.')
+			exit(1)
+
+	hue= init_hue(args)
+
+	if args.group_scene:
+		hue.capture_scene(args.name, groupscene=args.group_scene)
+
+	else:
+		# Get the light list
+
+		ids= set()
+
+		if args.light_list:
+			ids.update(set(args.light_list.split(',')))
+
+		if args.group_list:
+			# Generally faster than getting groups individually
+			groups= hue.get_all_groups()
+
+			for groupid in set(args.group_list.split(',')):
+				if groupid not in groups:
+					print(f'Group with id {groupid} not found')
+					exit(1)
+
+				group= groups[groupid]
+				ids.update(set(group.lights.keys(unresolved=True)))
+
+		hue.capture_scene(args.name, lightids=list(ids))
+
 # Use configparser to dump an INI file of the scene def. Use INI because
 # it's easier for humans to read and write, and the Hue data structures
 # are not very complicated.
@@ -919,28 +961,32 @@ def do_scene_dump(args):
 		if scene.has_presets():
 			preset= scene.preset(lightid)
 			dpreset= preset.definition()
-			ldef[secname]= dict(dpreset)
 
-			for k,v in dpreset.items():
-				if k == 'hue':
-					ldef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_hue, (0,360)))
-				elif k == 'sat':
-					ldef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_sat, (0,1)))
-				elif k == 'bri':
-					ldef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_bri, (0,1)))
-				elif k == 'xy':
-					# The configparser module doesn't deal with lists
-					ldef[secname]['x']= str(dpreset['xy'][0])
-					ldef[secname]['y']= str(dpreset['xy'][1])
-				elif k == 'transitiontime':
-					hastt+= 1
-					tt= '{:.1f}'.format(float(v)/10)
-					ldef[secname][k]= tt
-					deftt.add(tt)
+			if not preset.on:
+				ldef[secname]= { 'on': False }
+			else:
+				ldef[secname]= dict(dpreset)
 
-			# We separate this into x and y
-			if 'xy' in dpreset:
-				del ldef[secname]['xy']
+				for k,v in dpreset.items():
+					if k == 'hue':
+						ldef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_hue, (0,360)))
+					elif k == 'sat':
+						ldef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_sat, (0,1)))
+					elif k == 'bri':
+						ldef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_bri, (0,1)))
+					elif k == 'xy':
+						# The configparser module doesn't deal with lists
+						ldef[secname]['x']= str(dpreset['xy'][0])
+						ldef[secname]['y']= str(dpreset['xy'][1])
+					elif k == 'transitiontime':
+						hastt+= 1
+						tt= '{:.1f}'.format(float(v)/10)
+						ldef[secname][k]= tt
+						deftt.add(tt)
+
+				# We separate this into x and y
+				if 'xy' in dpreset:
+					del ldef[secname]['xy']
 
 		else:
 			ldef[secname]= {}
@@ -1840,6 +1886,20 @@ parser_scene.add_argument('-s', '--sort', choices=['name','id','lastupdated'],
 	help='Sort list by field')
 parser_scene.add_argument('id', nargs='*', help='Scene IDs')
 parser_scene.set_defaults(func=do_scene)
+
+# scene-capture
+
+parser_scene_cap= subparsers.add_parser('scene-capture',
+	help='Capture current light states as a scene')
+standard_args(parser_scene_cap, 'bridge')
+parser_scene_cap.add_argument('-G', '--group-scene', metavar='GROUP_ID',
+	help="Create a GroupScene from the specified group. Can't be combined with --light-id or --group-id. Only a single group is allow in a GroupScene.")
+parser_scene_cap.add_argument('-l', '--light-list',
+	help='Comma-separated list of light IDs to include in the scene. Can be combined with --group-list. This creates a LightScene.')
+parser_scene_cap.add_argument('-g', '--group-list', 
+	help='Comma-separated list of group IDs. Every light in the specified groups will be added to the scene. Can be combined with --light-list. This creates a LightScene.')
+parser_scene_cap.add_argument('name', help='The name of the new scene')
+parser_scene_cap.set_defaults(func=do_scene_capture)
 
 # scene-play
 

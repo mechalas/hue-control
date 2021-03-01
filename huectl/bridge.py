@@ -235,6 +235,7 @@ class HueBridge:
 	def rename(self, newname):
 		self.modify_configuration(name=newname)
 
+	# Recall/play a scene
 	def recall_scene(self, sceneid):
 		# Recalling a scene is done via the "set group state"
 		# using the group associated with the scene.
@@ -266,6 +267,40 @@ class HueBridge:
 			raise huectl.exception.BadResponse(rv)
 
 		return True
+
+	# Capture current light states into a scene
+
+	def capture_scene(self, name, groupscene=None, lightids=None):
+		if not isinstance(name, str):
+			raise TypeError('Expected str not '+str(type(name)))
+
+		apiver= self.api_version()
+
+		# The user asked to make a group scene.
+		if groupscene is not None:
+			if lights is not None:
+				raise InvalidOperation("Can't mix groupscene with other parameters")
+
+			scene= HueScene(self, name=name, groupid=str(groupscene))
+			rv= self.call(f'scenes', method='POST', data=scene.definition())
+
+		# Capture specified lights and/or lights in the specified groups
+
+		else:
+			scene= HueScene(self, name=name)
+			scene.lights.update_fromkeys(lightids)
+			rv= self.call(f'scenes', method='POST', data=scene.definition())
+
+		if not isinstance(rv, list):
+			raise huectl.exception.BadResponse(rv)
+
+		if len(rv) != 1:
+			raise huectl.exception.BadResponse(rv)
+
+		if 'success' not in rv[0]:
+			raise huectl.exception.BadResponse(rv)
+
+		return rv[0]['success']['id']
 
 	# Perform a touchlink operation. This addes the closest
 	# light (within range) to the bridge's ZigBee network.
@@ -634,8 +669,6 @@ class HueBridge:
 		if sceneid is not None:
 			uri= f'scenes/{sceneid}'
 
-		print(uri)
-		print(json.dumps(scenedef, indent=4))
 		rv= self.call(uri, method='POST', data=scenedef)
 
 		if not isinstance(rv, list):
@@ -646,6 +679,9 @@ class HueBridge:
 
 		if 'success' not in rv[0]:
 			raise huectl.exception.BadResponse(rv)
+
+		# Return the new scene's id
+		return rv[0]['success']['id']
 
 	def _scene_api_version_check(self, scenedef):
 		apiver= self.api_version()
