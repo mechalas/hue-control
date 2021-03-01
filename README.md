@@ -220,6 +220,7 @@ These commands modify or manage light devices. A light is any device that can be
 * [**huemgr light-power**](#huemgr-light-power): turn lights on and off
 * [**huemgr light-rename**](#huemgr-light-rename): rename a light
 * [**huemgr light-set**](#huemgr-light-set): set a light's state
+* [**huemgr touchlink**](#huemgr-touchlink): add the closest light in range to the bride
 
 -----
 
@@ -360,6 +361,20 @@ Color modes cannot be combined. Choosing a color option sets the specific color 
 | --color-temperature | Color Temperature |
 
 A color can also be selected by name with the **--color-name** options. Selecting a color in this manner will set the color mode to HSB. See [Color Names](#color-names) for more information.
+
+----
+
+#### huemgr touchlink
+
+Perform a touchlink action.
+
+`huemgr [ -b BRIDGE ]`
+
+This command performs a touchlink action, which adds the closest ZigBee light within range to the bridge. This method can be used to add lights that don't show up in a search (via `light-add`), even when providing the target light's serial number. The light must be powered on.
+
+> Care should be taken to ensure the closest ZigBee light not already on the bridge is the target light. Moving it as close to the bridge as possible before doing a touchlink is strongly recommended.
+
+----
 
 ### Scene Management
 
