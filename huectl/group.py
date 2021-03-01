@@ -264,7 +264,7 @@ class HueGroup(HueContainer):
 
 		return s
 
-	def asdict(self):
+	def definition(self):
 		groupdef= {}
 
 		if self.name is not None:
@@ -330,7 +330,7 @@ class HueGroup(HueContainer):
 			raise(e)
 
 	def change_state(self, schange):
-		return self.bridge.set_group_state(self.id, schange.asdict())
+		return self.bridge.set_group_state(self.id, schange.definition())
 
 	# Add, remove, or set the lights in a group. Only do the update
 	# on the bridge if something actually changes.
@@ -397,7 +397,7 @@ class HueGroup(HueContainer):
 			raise InvalidOperation('save: only allowed for new groups')
 
 		# If this fails, an exception is thrown so we won't continue on
-		groupid= self.bridge.create_group(self.asdict())
+		groupid= self.bridge.create_group(self.definition())
 
 		# Set the id to indicate it's not longer a new group.
 		self.id= groupid

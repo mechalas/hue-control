@@ -902,7 +902,7 @@ def do_scene_dump(args):
 
 		if scene.has_presets():
 			preset= scene.preset(lightid)
-			dpreset= preset.asdict()
+			dpreset= preset.definition()
 			sdef[secname]= dpreset
 			for k,v in sdef[secname].items():
 				if k == 'hue':

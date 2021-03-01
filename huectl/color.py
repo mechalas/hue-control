@@ -337,7 +337,7 @@ class HueColorHSB(HueColor):
 		else:
 			raise ValueError
 
-	def asdict(self):
+	def definition(self):
 		return { 'hue': self.hue(), 'sat': self.sat(), 'bri': self.brightness() }
 
 	def __str__(self):

@@ -98,7 +98,7 @@ class HueScene(HueContainer):
 
 		return f'<HueScene> {self.id} {self.name}, {self.type},{group} lights {slights}'
 
-	def asdict(self, apiver=None, tobridge=False):
+	def definition(self, apiver=None, tobridge=False):
 		if apiver is None:
 			apiver= self.bridge.api_version()
 
@@ -128,7 +128,7 @@ class HueScene(HueContainer):
 		if self.has_presets() and apiver >= '1.29':
 			ls= d['lightstates']= dict()
 			for lightid, lightstate in self.lightstates.items(unresolved=True):
-				ls[lightid]= lightstate.asdict()
+				ls[lightid]= lightstate.definition()
 
 		return d
 
@@ -210,7 +210,7 @@ class HueScene(HueContainer):
 				# This scene id doesn't exist
 				pass
 
-		d= self.asdict()
+		d= self.definition()
 
 		if newscene:
 			self.bridge.create_scene(d, sceneid=self.id)
