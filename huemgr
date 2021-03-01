@@ -841,6 +841,10 @@ def _light_state(state):
 # are not very complicated.
 
 def do_scene_dump(args):
+	deftt= set()
+	nlights= 0
+	hastt= 0
+
 	hue= init_hue(args)
 
 	# Get light data so we can get names
@@ -850,6 +854,9 @@ def do_scene_dump(args):
 	sdef= configparser.ConfigParser(interpolation=None, default_section='scene')
 	sdef['readonly']= {}
 	sdef['scene']['name']= scene.name
+
+	# Scene-wide transition times don't appear to be supported in v2
+	# scenes, but may be allowed in v1 scenes so we'll leave this in.
 	if scene.transitiontime is not None:
 		sdef['scene']['transitiontime']= str(scene.transitiontime/10)
 
@@ -881,9 +888,16 @@ def do_scene_dump(args):
 	else:
 		fh= sys.stdout
 
-	sdef.write(fh)
+	# We want our ini file written with scene defs at the top and
+	# light defs, in order, after that. So make an array that we can
+	# process in order, and create a separate ini parser for each
+	# light section to hold the individual light defs.
+
+	inidefs= [ sdef ]
 
 	for lightid in scene.lights.keys(unresolved=True):
+		nlights+= 1
+
 		if lightid in lights:
 			light= lights[lightid]
 			lightname= light.name
@@ -894,36 +908,39 @@ def do_scene_dump(args):
 		# convenience of the write method and the ability to
 		# print comments.
 
-		sdef= configparser.ConfigParser(interpolation=None,
-			default_section='scene')
-
 		secname= 'light '+lightid
 		preset= None
+
+		ldef= configparser.ConfigParser(interpolation=None,
+			default_section=secname)
 
 		if scene.has_presets():
 			preset= scene.preset(lightid)
 			dpreset= preset.definition()
-			sdef[secname]= dpreset
-			for k,v in sdef[secname].items():
+			ldef[secname]= dpreset
+			for k,v in ldef[secname].items():
 				if k == 'hue':
-					sdef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_hue, (0,360)))
+					ldef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_hue, (0,360)))
 				elif k == 'sat':
-					sdef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_sat, (0,1)))
+					ldef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_sat, (0,1)))
 				elif k == 'bri':
-					sdef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_bri, (0,1)))
+					ldef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_bri, (0,1)))
 				elif k == 'xy':
 					# The configparser module doesn't deal with lists
-					sdef[secname]['x']= str(dpreset['xy'][0])
-					sdef[secname]['y']= str(dpreset['xy'][1])
+					ldef[secname]['x']= str(dpreset['xy'][0])
+					ldef[secname]['y']= str(dpreset['xy'][1])
 				elif k == 'transitiontime':
-					sdef[secname][k]= '{:.1f}'.format(float(v)/10)
+					hastt+= 1
+					tt= '{:.1f}'.format(float(v)/10)
+					ldef[secname][k]= tt
+					deftt.add(tt)
 
 			# We separate this into x and y
 			if 'xy' in dpreset:
-				del sdef[secname]['xy']
+				del ldef[secname]['xy']
 
 		else:
-			sdef[secname]= {}
+			ldef[secname]= {}
 
 		# Add light name and color as comments
 		print(f'; {lightname}', file=fh)
@@ -932,17 +949,35 @@ def do_scene_dump(args):
 				cname= preset.color().name()
 				print(f'; color: {cname}', file=fh)
 
-		sdef.write(fh)
+		inidefs.append(ldef)
+
+	# If all the lights have a transition time set _and_ they are all
+	# the same, then consolidate that to a scene-wide transition time.
+	# This makes editing the scene a bit easier.
+
+	if len(deftt) == 1 and nlights == hastt:
+		sdef['scene']['transitiontime']= list(deftt)[0]
+		for ini in inidefs[1:]:
+			# There's only one section in each light def
+			secname= list(ini.keys())[0]
+			del ini[secname]['transitiontime']
+
+	for ini in inidefs:
+		ini.write(fh)
 
 	if args.file is not None:
 		print(f'Scene definition for {scene.name} saved to {args.file}')
 	
+# Load a scene from an INI file, turn it into a scene object, and then
+# save it either as a new scene or new settings for the given scene.
+
 def do_scene_load(args):
 	sdef= configparser.ConfigParser(interpolation=None)
 	hue= init_hue(args)
 	sceneid= None
 	errors= False
 	newscene= True
+	deftt= None
 
 	try:
 		sdef.read_file(open(args.file))
@@ -987,7 +1022,7 @@ def do_scene_load(args):
 			d['type']= sdef['scene']['type']
 
 	if 'transitiontime' in sdef['scene']:
-		d['transitiontime']= round(sdef['scene'].getfloat('transitiontime')*10)
+		deftt= round(sdef['scene'].getfloat('transitiontime')*10)
 
 	if 'appdata' in sdef:
 		d['appdata']= {}
@@ -1018,6 +1053,14 @@ def do_scene_load(args):
 			lightid= (sec.split(' '))[1]
 			lightids.append(lightid)
 			ls= dict()
+
+			# If we asked for a scene-wide transition time, apply it to
+			# all the lights. Indiivdual lit transition times will 
+			# override the default.
+
+			if deftt is not None:
+				ls['transitiontime']= deftt
+
 			for k in sdef[sec].keys():
 				if k == 'bri':
 					v= round(map_range(sdef[sec].getfloat(k), (0,1), HueColor.range_bri))
