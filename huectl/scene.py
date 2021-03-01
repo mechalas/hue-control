@@ -103,6 +103,11 @@ class HueScene(HueContainer):
 
 		return f'<HueScene> {self.id} {self.name}, {self.type},{group} lights {slights}'
 
+	#----------------------------------------
+	# Return a scene definition as a dict that is sutiable for converting to 
+	# JSON for creating or modifying a scene on the bridge.
+	#----------------------------------------
+
 	def definition(self, apiver=None, tobridge=False):
 		if apiver is None:
 			apiver= self.bridge.api_version()
@@ -129,11 +134,13 @@ class HueScene(HueContainer):
 				d['group']= self.group
 			d['type']= self.type
 
-		d['lights']= self.lights.keys(unresolved=True)
-		if self.has_presets() and apiver >= '1.29':
-			ls= d['lightstates']= dict()
-			for lightid, lightstate in self.lightstates.items(unresolved=True):
-				ls[lightid]= lightstate.definition()
+		lightlist= self.lights.keys(unresolved=True)
+		if len(lightlist):
+			d['lights']= lightlist
+			if self.has_presets() and apiver >= '1.29':
+				ls= d['lightstates']= dict()
+				for lightid, lightstate in self.lightstates.items(unresolved=True):
+					ls[lightid]= lightstate.definition()
 
 		return d
 
