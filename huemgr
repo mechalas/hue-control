@@ -894,8 +894,10 @@ def do_scene_dump(args):
 	# light section to hold the individual light defs.
 
 	inidefs= [ sdef ]
+	comments= [[]]
 
 	for lightid in scene.lights.keys(unresolved=True):
+		clist= []
 		nlights+= 1
 
 		if lightid in lights:
@@ -917,8 +919,9 @@ def do_scene_dump(args):
 		if scene.has_presets():
 			preset= scene.preset(lightid)
 			dpreset= preset.definition()
-			ldef[secname]= dpreset
-			for k,v in ldef[secname].items():
+			ldef[secname]= dict(dpreset)
+
+			for k,v in dpreset.items():
 				if k == 'hue':
 					ldef[secname][k]= '{:.4f}'.format(map_range(float(v), HueColorHSB.range_hue, (0,360)))
 				elif k == 'sat':
@@ -943,13 +946,14 @@ def do_scene_dump(args):
 			ldef[secname]= {}
 
 		# Add light name and color as comments
-		print(f'; {lightname}', file=fh)
+		clist.append(f'; {lightname}')
 		if preset:
 			if preset.color() is not None:
 				cname= preset.color().name()
-				print(f'; color: {cname}', file=fh)
+				clist.append(f'; color: {cname}')
 
 		inidefs.append(ldef)
+		comments.append(clist)
 
 	# If all the lights have a transition time set _and_ they are all
 	# the same, then consolidate that to a scene-wide transition time.
@@ -962,7 +966,10 @@ def do_scene_dump(args):
 			secname= list(ini.keys())[0]
 			del ini[secname]['transitiontime']
 
-	for ini in inidefs:
+	for ini,clist in zip(inidefs, comments):
+		if len(clist):
+			for c in clist:
+				print(c, file=fh)
 		ini.write(fh)
 
 	if args.file is not None:
