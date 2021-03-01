@@ -80,7 +80,7 @@ Hue Manager understands that a bridge's IP address may change, especially if it'
 
 ### Utility Commands
 
-* [Color information](#color-info)
+* [Color information](#color-information)
 
 ----
 
@@ -584,10 +584,10 @@ This command plays the given scenes. Scenes are recalled in the order they are g
 
 ----
 
-### Color Information Commands
+### Color Information
 
-* huemgr color
-* huemgr color-name
+* [huemgr color](huemgr-color)
+* [huemgr color-name](huemgr-color-name)
 
 ----
 
