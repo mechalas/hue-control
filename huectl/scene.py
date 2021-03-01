@@ -52,21 +52,21 @@ class HueScene(HueContainer):
 
 		return scene
 
-	def __init__(self, bridge):
+	def __init__(self, bridge, groupid=None, name=None, recycle=False, scenetype=HueSceneType.LightScene):
 		super().__init__()
 
 		if not isinstance(bridge, huectl.bridge.HueBridge):
 			raise ValueError('bridge: expected HueBridge, not '+str(type(bridge)))
 		self.bridge= bridge
 
-		self.name= None
+		self.name= name
 		self.id= None
 		self.transitiontime= None
 		self._has_lightstates= False
 
 		# API 1.11
 		self.owner= None
-		self.recycle= False
+		self.recycle= recycle
 		self.locked= False
 		self.appdata= {}
 		self.picture= None
@@ -74,8 +74,13 @@ class HueScene(HueContainer):
 		self.version= None
 
 		# API 1.28
-		self.group= None
-		self.type= HueSceneType.LightScene
+		self.group= groupid
+		if groupid is None:
+			self.type= scenetype
+		else:
+			if self.type != None and self.type != HueSceneType.GroupScene:
+				raise ValueError("Scenes with group association must be type GroupScene")
+			self.type= HueSceneType.GroupScene
 
 		# API 1.36
 		self.image= None
@@ -168,6 +173,10 @@ class HueScene(HueContainer):
 			'data': data
 		}
 
+		# If it's an existing scene, change it on the bridge, too
+		if self.id is not None:
+			self.bridge.modify_scene(self.id, appdata=self.appdata)
+
 	def rename(self, name):
 		if name is None:
 			return False
@@ -187,7 +196,9 @@ class HueScene(HueContainer):
 		if len(name) > maxlen:
 			raise ValueError(f'Max nane length is {maxlen} characters')
 
-		self.bridge.modify_scene(self.id, name=name)
+		# If it's an existing scene, rename it on the bridge, too
+		if self.id is not None:
+			self.bridge.modify_scene(self.id, name=name)
 
 	#----------------------------------------
 	# Save the scene to the bridge. If we have a sceneid, we are doing an
