@@ -1407,6 +1407,32 @@ def do_bridge_reg(args):
 		config.save()
 
 #----------------------------------------------------------------------------
+# Raw exec
+#----------------------------------------------------------------------------
+
+def do_exec(args):
+	hue= init_hue(args)
+	full_uri= True
+	method= 'GET'
+	data= None
+
+	if args.prepend_auth:
+		full_uri= False
+		args.uri= args.uri.strip('/')
+	
+	if args.method:
+		method= args.method
+
+	if args.data:
+		data= json.loads(args.data)
+	elif args.file:
+		with open(args.file) as fh:
+			data= json.load(fh)
+
+	raw_print(args, hue.call(args.uri, full_uri=full_uri, method=method,
+		data=data, raw=True))
+
+#----------------------------------------------------------------------------
 # Initialize API
 #----------------------------------------------------------------------------
 
@@ -1666,6 +1692,26 @@ parser_bridge_def= subparsers.add_parser('bridge-default',
 parser_bridge_def.add_argument('identifier', type=str, nargs=1,
 	help='The bridge to use. Can be a name, IP address, or serial number. The bridge must already be defined in your .huemgr config file.')
 parser_bridge_def.set_defaults(func=do_bridge_def)
+
+# Execute raw command
+#--------------------
+
+parser_exec= subparsers.add_parser('exec',
+	help='Execute an arbitrary endpoint, with optional data, and view the raw bridge response.')
+standard_args(parser_exec, 'bridge', 'pretty')
+parser_exec.add_argument('-m', '--method',
+	choices=['GET','POST','PUT','DELETE'],
+	help='Set the request method. Default is to issue a GET')
+group_ex= parser_exec.add_mutually_exclusive_group()
+group_ex.add_argument('-d', '--data',
+	help='JSON data to send with a PUT or POST')
+group_ex.add_argument('-f', '--file',
+	help='File containing JSON data to send with a PUT or POST')
+parser_exec.add_argument('-p', '--prepend-auth', action='store_true',
+	help='Prepend /api/USERNAME to the endpoint, substituting USERNAME with your whitelisted username for the bridge.')
+parser_exec.add_argument('uri',
+	help='The URI of the endpoint. If -p is given, it will preprend /api/USERNAME (see the --prepend-auth option).')
+parser_exec.set_defaults(func=do_exec)
 
 # Group management
 #--------------------
