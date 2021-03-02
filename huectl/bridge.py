@@ -856,7 +856,7 @@ class HueBridge:
 		}
 		if client_key is not None:
 			data['generate clientkey']= client_key
-		rv= self.call(None, registration=True, data=data)
+		rv= self.call('/api', full_uri=True, method='POST', data=data)
 
 		item= rv[0]
 		if 'success' in item:
@@ -905,7 +905,7 @@ class HueBridge:
 	# Raw HTTP calls
 	#--------------------
 
-	def call(self, endpoint, registration=False, method='GET', data=None, raw=False):
+	def call(self, endpoint, full_uri=False, method='GET', data=None, raw=False):
 		# First, see if the bridge will do TLS. If so, remember that. If
 		# not, fall back to HTTP.
 		if self.proto is None:
@@ -913,10 +913,9 @@ class HueBridge:
 
 		defaults= self.request_defaults
 
-		if registration:
-			# It's a registration call
-			url= f'{self.proto}://{self.address}/api'
-			method= 'POST'
+		if full_uri:
+			# Don't prepend /api/USERNAME to the endpoint
+			url= f'{self.proto}://{self.address}{endpoint}'
 		else:
 			if endpoint is None:
 				url= f'{self.proto}://{self.address}/api/{self.user_id}'
