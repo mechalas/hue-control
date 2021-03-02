@@ -83,7 +83,11 @@ Hue Manager understands that a bridge's IP address may change, especially if it'
 
 ### Utility Commands
 
-* [Color information](#color-information)
+* [Direct API execution](#direct-api-execution)
+
+### Misc Commands
+
+* [Color functions](#color-functions)
 
 ----
 
@@ -622,7 +626,43 @@ This command plays the given scenes. Scenes are recalled in the order they are g
 
 ----
 
-### Color Information
+### Direct API Execution
+
+#### huemgr exec
+
+Execute a low-level API call and print the raw response.
+
+`huemgr exec [ -b BRIDGE ] [ -d DATA | -f FILE ] [-m METHOD ] [ -p ] URI`
+
+| option | description |
+|----|----|
+| uri | The URI (API endpoint) to call on the bridge. You must provide the absolute URI, but see the **-p** option.|
+| -R<br/>--pretty | Pretty-print the bridge response. |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
+| -d DATA<br/>--data DATA | JSON data to include with the request. Only applies to PUT and POST requests. |
+| -f FILE<br/>--file FILE | Like the -d option, but a filename containing the JSON data to send. |
+| -m METHOD<br/>--method METHOD | The request method to use, which must be one of: DELETE, GET, POST, and PUT. The default is to use GET. |
+| -p<br/>--prepend-auth | Automatically prepend /api/_username_ to the URI. This is a convenience method for executing endpoints that require authentication (which is most of them). |
+
+This command executes a raw endpoint on the bridge and prints the raw response. It does not do any error handling, parameter checking, or filtering.
+
+> Use this command with care! Be sure to read the [Hue API documentation](https://developers.meethue.com/) before attempting to execute raw API queries.
+
+As a convenient, the **--prepend-auth** option will let you omit the /api/username portion of a queries, and it will use the registered user for the target bridge.
+
+This command:
+
+`huemgr exec -p scenes`
+
+is equivalent to this:
+
+`huemgr exec /api/mybridgeuserid/scenes`
+
+By default, it executes a GET query. The **--method** option will let you specify a DELETE, POST, or PUT query. The latter two generally require that you supply JSON data, which can be done onthe command line with **--data** or from a text file using **--file**.
+
+----
+
+### Color Functions
 
 * [huemgr color](huemgr-color)
 * [huemgr color-name](huemgr-color-name)
