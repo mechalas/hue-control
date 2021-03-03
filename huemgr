@@ -759,8 +759,11 @@ def do_scene(args):
 			sceneinfo= fmt.format(scene.id)
 
 			if scene.type == HueSceneType.GroupScene:
-				group= groups[scene.group]
-				sceneinfo+= f' {scene.name} ({scene.type}: {group.name})'
+				if scene.group == '0':
+					gname= 'group 0/all lights'
+				else:
+					group= groups[scene.group]
+				sceneinfo+= f' {scene.name} ({scene.type}: {gname})'
 			else:
 				sceneinfo+= f' {scene.name} ({scene.type})'
 
