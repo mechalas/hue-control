@@ -9,8 +9,8 @@ bbb= '[01]?[0-9][0-9]'
 nn= '[0-9][0-9]?'
 
 patterns_datetime= (
-	re.compile(f'^({ymd}T{hms})$'),
-	re.compile(f'^({ymd}T{hms})A({hms})$')
+	re.compile(f'^({ymd}T{hms}Z?)$'),
+	re.compile(f'^({ymd}T{hms}Z?)A({hms})$')
 )
 
 patterns_recurringtime= (

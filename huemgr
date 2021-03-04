@@ -1283,8 +1283,31 @@ def do_sensor(args):
 		if args.raw:
 			return
 
-	for sensor in sensors.values():
-		print(sensor)
+	if args.sort:
+		if args.sort == 'id':
+			sensorlist= map(lambda x: x[1], sorted(sensors.items()))
+		else:
+			sensorlist= list(sensors.values())
+			sensorlist.sort(key=lambda x: getattr(x, args.sort))
+	else:
+		sensorlist= sensors.values()
+
+	maxw= len(max(sensors.keys(), key=len))
+	fmt= '{:'+str(maxw)+'s} {:s} ({:s})'
+	for sensor in sensorlist:
+		print(fmt.format(sensor.id, sensor.name, sensor.type))
+		if args.state:
+			state= sensor.state()
+			if state is not None:
+				for k,v in state.items():
+					print('    {:s}: {:s}'.format(k,str(v)))
+				updated= sensor.state_updated()
+				if updated is None:
+					supdated= 'never'
+				else:
+					supdated= updated.strftime('%Y-%m-%d %H:%M:%S %Z')
+				print(f'    updated: {supdated}')
+				print()
 
 #----------------------------------------------------------------------------
 # Resourcelinks
@@ -2038,6 +2061,10 @@ parser_sched_del.set_defaults(func=do_schedule_delete)
 parser_sensor= subparsers.add_parser('sensor',
 	help='List sensor definitions')
 standard_args(parser_sensor, 'raw', 'pretty', 'bridge')
+parser_sensor.add_argument('-S', '--state', action='store_true',
+	help='Show sensor state')
+parser_sensor.add_argument('-s', '--sort', choices=['name','id'],
+	help='Sort list by field')
 parser_sensor.add_argument('id', nargs='*', help='Sensor IDs')
 parser_sensor.set_defaults(func=do_sensor)
 

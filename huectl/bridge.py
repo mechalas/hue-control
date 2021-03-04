@@ -760,7 +760,7 @@ class HueBridge:
 		if raw:
 			return data
 
-		return HueSensor(data, sensorid=sensorid, bridge=self)
+		return HueSensor.parse_definition(data, sensorid=sensorid, bridge=self)
 
 	def get_all_sensors (self, raw=False):
 		data= self.call('sensors', raw=raw)
@@ -769,7 +769,7 @@ class HueBridge:
 
 		sensors= dict()
 		for sensorid, sensordata in data.items():
-			sensors[sensorid]= HueSensor(sensordata, sensorid=sensorid, bridge=self)
+			sensors[sensorid]= HueSensor.parse_definition(sensordata, sensorid=sensorid, bridge=self)
 
 		return sensors
 
