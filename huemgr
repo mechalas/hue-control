@@ -8,6 +8,7 @@ from huectl.time import HueDateTime, HueRecurringTime, HueTimeInterval
 from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb, map_range
 import huectl.colorwheel as colorwheel
 from argparse import ArgumentParser
+from datetime import datetime, timezone
 import textwrap
 import sys
 import json
@@ -1280,7 +1281,7 @@ def do_sensor(args):
 				sensor= hue.get_sensor(sensorid)
 				sensors[sensorid]= sensor
 
-		if args.raw:
+		if args.raw or args.pretty:
 			return
 
 	if args.sort:
@@ -1305,7 +1306,7 @@ def do_sensor(args):
 				if updated is None:
 					supdated= 'never'
 				else:
-					supdated= updated.strftime('%Y-%m-%d %H:%M:%S %Z')
+					supdated= utc_to_local(updated.time).strftime('%Y-%m-%d %H:%M:%S %Z')
 				print(f'    updated: {supdated}')
 				print()
 
@@ -1636,6 +1637,9 @@ def do_touchlink(args):
 #----------------------------------------
 # Util functions
 #----------------------------------------
+
+def utc_to_local(dtz):
+	return dtz.replace(tzinfo=timezone.utc).astimezone()
 
 def print_wrap(s):
 	print("\n".join(textwrap.wrap(s)))
