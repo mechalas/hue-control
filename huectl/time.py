@@ -118,7 +118,7 @@ class HueDateTime:
 			self.random= parse_time(args[1])
 
 	def __str__(self):
-		s= '<HueDateTime> '+self.time.strftime('%a %b %d %Y at %H:%M:%S')
+		s= '<HueDateTime> '+self.time.strftime('%a %b %d %Y at %H:%M:%S %Z')
 		if self.random:
 			s+= ' randomized by '+self.random.strftime('%H:%M:%S')
 		return s
@@ -148,6 +148,9 @@ class HueDateTime:
 		if arg is None:
 			return True
 		return self.time >= arg.time
+
+	def is_randomized(self):
+		return not self.random is None
 
 	# NOTE: This ignores the randomized time
 
