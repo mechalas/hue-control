@@ -928,7 +928,7 @@ class HueBridge:
 			response= requests.request(method, url, data=bytes(json.dumps(data), 'utf-8'), **defaults)
 
 		if response.status_code != 200:
-			raise huectl.exception.BadHTTPResponse(url)
+			raise huectl.exception.BadHTTPResponse(response.status_code)
 
 		reply= response.text
 		if raw:
