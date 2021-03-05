@@ -22,6 +22,63 @@ class HueSensorType:
 	ZLLTemperature= 'ZLLTemperature'
 
 #============================================================================
+# Hue sensor state, representing various states from standard hue sensors.
+#============================================================================
+
+class HueSensorState():
+	def __init__(self, data):
+		self.last_update= None
+		self._state= dict()
+
+		for attr,value in data.items():
+			if attr == 'lastupdated':
+				# Sensors use UTC
+				self.last_update= parse_timespec(value+'Z')
+			elif attr == 'lightlevel':
+				self._state[attr]= HueSensorLightLevel(value)
+			elif attr == 'temperature':
+				self._state[attr]= HueSensorTemperature(value)
+			elif attr == 'humidity':
+				self._state[attr]= HueSensorHumidity(value)
+			else:
+				self._state[attr]= HueSensorValue(value)
+
+	def updated(self):
+		return self.last_update
+
+	def state(self, attr):
+		return self._state[attr]
+
+	def items(self):
+		return self._state.items()
+
+class HueSensorValue():
+	def __init__(self, value):
+		self.value= value
+
+# Light level stored in 10000 log10(lux+1) (note that the Hue API doc lists
+# this formula incorrectly).
+
+class HueSensorLightLevel(HueSensorValue):
+	def lux(self):
+		return round(pow(10, self.value/10000)-1)
+
+# Temperature in Celsius*100
+
+class HueSensorTemperature(HueSensorValue):
+	def celsius(self):
+		return float(self.value)/100
+
+	def farenheit(self):
+		return self.celsius()*9/5+32
+
+# Humdity in val*1000
+
+class HueSensorHumidity(HueSensorValue):
+	def humidity(self):
+		return float(self.value/1000)
+
+#============================================================================
 # Hue sensors. ZLL and ZGP sensors are created when hardware devices are
 # added to the bridge. CLIP sensors are typically user-created, and store
 # status information which can be set and queried by rules.
@@ -54,7 +111,7 @@ class HueSensor():
 				sensor.__dict__[attr]= data[attr]
 
 		if 'state' in data:
-			sensor._state= data['state']
+			sensor.state= HueSensorState(data['state'])
 
 		return sensor
 
@@ -71,7 +128,7 @@ class HueSensor():
 		self.uniqueid= None
 		self.diversityid= None
 		self.recycle= False
-		self._state= {}
+		self.state= {}
 		self.config= {}
 		self.capabilities= {}
 		self.children= list()
@@ -87,23 +144,6 @@ class HueSensor():
 
 		return self.uniqueid[0:23]
 
-	def state(self):
-		if self._state is None:
-			return None
-
-		st= dict(self._state)
-		if 'lastupdated' in st:
-			del st['lastupdated']
-
-		return st
-
-	def state_updated(self):
-		st= self._state
-		if 'lastupdated' in self._state:
-			return parse_timespec(self._state['lastupdated']+'Z')
-
-		return None
-	
 	def is_primary(self):
 		if 'primary' in capabilities:
 			return self.capabilities['primary']

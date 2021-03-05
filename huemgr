@@ -1,5 +1,6 @@
 #! /usr/bin/python3
 
+from huectl.sensor import HueSensorTemperature, HueSensorLightLevel, HueSensorHumidity
 from huectl.bridge import HueBridge, HueBridgeSearch, HueDeviceScanResults
 from huectl.group import HueGroup, HueGroupType, HueRoom
 from huectl.scene import HueScene, HueSceneType
@@ -1298,11 +1299,19 @@ def do_sensor(args):
 	for sensor in sensorlist:
 		print(fmt.format(sensor.id, sensor.name, sensor.type))
 		if args.state:
-			state= sensor.state()
+			state= sensor.state
 			if state is not None:
 				for k,v in state.items():
-					print('    {:s}: {:s}'.format(k,str(v)))
-				updated= sensor.state_updated()
+					if isinstance(v, HueSensorTemperature):
+						sval= '{:.2f} C'.format(v.celsius())
+					elif isinstance(v, HueSensorLightLevel):
+						sval= '{:d} lux'.format(v.lux())
+					elif isinstance(v, HueSensorHumidity):
+						sval= '{:.2f}%'.format(v.humidity()*100)
+					else:
+						sval= str(v.value)
+					print('    {:s}: {:s}'.format(k, sval))
+				updated= sensor.state.updated()
 				if updated is None:
 					supdated= 'never'
 				else:
