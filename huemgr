@@ -226,6 +226,26 @@ class Config:
 
 		return False
 
+	def param(self, *args):
+		cf= self.cf['DEFAULT']
+
+		if len(args) == 0:
+			raise IndexError('param(): not enough arguments')
+
+		param= args[0]
+		if len(args) == 1:
+			if param in cf:
+				return cf[param]
+			return None
+		elif len(args) == 2:
+			cf[param]= args[1]
+			self.save()
+		elif len(args) > 2:
+			cf[param]= ','.join(args[1:])
+			self.save()
+
+		return True
+
 #----------------------------------------------------------------------------
 # Bridge search
 #----------------------------------------------------------------------------
@@ -1263,7 +1283,7 @@ def do_schedule(args):
 #----------------------------------------------------------------------------
 
 def do_sensor(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	sensors= dict()
 
@@ -1303,7 +1323,10 @@ def do_sensor(args):
 			if state is not None:
 				for k,v in state.items():
 					if isinstance(v, HueSensorTemperature):
-						sval= '{:.2f} C'.format(v.celsius())
+						if config.param('temperature_units').lower() in ('f', 'imperial', 'us', 'farenheit'):
+							sval= '{:.2f} F'.format(v.farenheit())
+						else:
+							sval= '{:.2f} C'.format(v.celsius())
 					elif isinstance(v, HueSensorLightLevel):
 						sval= '{:d} lux'.format(v.lux())
 					elif isinstance(v, HueSensorHumidity):
@@ -1353,7 +1376,7 @@ def do_rlinks_get(args):
 # Bridge Configuration
 #----------------------------------------------------------------------------
 
-def do_config_get(args):
+def do_bridge_config(args):
 	hue= init_hue(args)
 
 	if args.all:
@@ -1509,7 +1532,7 @@ def init_hue(args):
 
 	try:
 		hue= HueBridge(addr, user_id=user_id, serial=serial)
-		return hue
+		return hue, config
 	except Exception as e:
 		print(str(e))
 		pass
@@ -1527,7 +1550,7 @@ def init_hue(args):
 
 		try:
 			hue= HueBridge(addr, user_id=user_id)
-			return hue
+			return hue, config
 		except Exception as e:
 			print(str(e))
 	
@@ -2084,12 +2107,12 @@ parser_sensor.set_defaults(func=do_sensor)
 # Bridge configuration
 #--------------------
 
-parser_config_get= subparsers.add_parser('config-get',
+parser_bridge_config= subparsers.add_parser('bridge-config',
 	help='Get bridge configuration')
-standard_args(parser_config_get, 'raw', 'pretty', 'bridge')
-parser_config_get.add_argument('-a', '--all', action='store_true',
+standard_args(parser_bridge_config, 'raw', 'pretty', 'bridge')
+parser_bridge_config.add_argument('-a', '--all', action='store_true',
 	help='Dump the full datastore (implies --raw).')
-parser_config_get.set_defaults(func=do_config_get)
+parser_bridge_config.set_defaults(func=do_bridge_config)
 
 # Touchlink
 #--------------------
