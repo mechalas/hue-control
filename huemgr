@@ -2105,7 +2105,7 @@ parser_sensor.add_argument('-S', '--state', action='store_true',
 	help='Show sensor state')
 parser_sensor.add_argument('-p', '--physical-only', action='store_true',
 	help='Show physical sensors only')
-parser_sensor.add_argument('-s', '--sort', choices=['name','id'],
+parser_sensor.add_argument('-s', '--sort', choices=['name','id','type'],
 	help='Sort list by field')
 parser_sensor.add_argument('id', nargs='*', help='Sensor IDs')
 parser_sensor.set_defaults(func=do_sensor)
