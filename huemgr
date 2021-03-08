@@ -1314,6 +1314,10 @@ def do_sensor(args):
 	else:
 		sensorlist= sensors.values()
 
+	if args.physical_only:
+		sensorlist= list(filter(lambda x: x.type != 'Daylight' and not x.type.startswith('CLIP'),
+			sensorlist))
+
 	maxw= len(max(sensors.keys(), key=len))
 	fmt= '{:'+str(maxw)+'s} {:s} ({:s})'
 	for sensor in sensorlist:
@@ -2099,6 +2103,8 @@ parser_sensor= subparsers.add_parser('sensor',
 standard_args(parser_sensor, 'raw', 'pretty', 'bridge')
 parser_sensor.add_argument('-S', '--state', action='store_true',
 	help='Show sensor state')
+parser_sensor.add_argument('-p', '--physical-only', action='store_true',
+	help='Show physical sensors only')
 parser_sensor.add_argument('-s', '--sort', choices=['name','id'],
 	help='Sort list by field')
 parser_sensor.add_argument('id', nargs='*', help='Sensor IDs')
