@@ -286,7 +286,7 @@ def do_room_classes(args):
 			print(f'   {rc}')
 
 def do_group_del(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	for groupid in args.id:
 		try:
@@ -297,7 +297,7 @@ def do_group_del(args):
 			print(f'Could not delete group {groupid}')
 
 def do_group_add(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	# Get our lights
 	lights= hue.get_all_lights()
@@ -321,7 +321,7 @@ def do_group_add(args):
 	print('Created group {args.nane} with id {groupid}')
 
 def do_group_edit(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	groupid= args.groupid
 	group= hue.get_group(args.groupid)
@@ -336,7 +336,7 @@ def do_group_edit(args):
 		group.del_lights_byid(args.remove_lights)
 
 def do_group_rename(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	group= hue.get_group(args.id)
 	group.rename(args.name)
@@ -348,7 +348,7 @@ def do_group_set(args):
 	_device_set(args, 'group')
 
 def do_group(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	groups= dict()
 
@@ -407,7 +407,7 @@ def do_group(args):
 #----------------------------------------------------------------------------
 
 def do_light_add(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 	serials= list()
 
 	if 'serialnum' in args:
@@ -461,7 +461,7 @@ def do_light_add(args):
 	exit(0)
 
 def do_light_rename(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	light= hue.get_light(args.id)
 	light.rename(args.name)
@@ -473,7 +473,7 @@ def _device_set(args, dtype):
 	if dtype not in ('light', 'group'):
 		raise ValueError('dtype: expected light or group')
 
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	devices= dict()
 	kwargs= dict()
@@ -581,7 +581,7 @@ def _device_power(args, dtype):
 	if dtype not in ('light', 'group'):
 		raise ValueError('dtype: expected light or group')
 
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	devices= dict()
 	kwargs= dict()
@@ -623,7 +623,7 @@ def _device_power(args, dtype):
 		device.change_state(schange)
 
 def do_light(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 	
 	lights= dict()
 
@@ -674,7 +674,7 @@ def do_light(args):
 #----------------------------------------------------------------------------
 
 def do_rule(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 	rules= dict()
 
 	if not len(args.id):
@@ -710,7 +710,7 @@ def do_rule(args):
 # scenes.
 
 def do_scene(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	if args.summary and args.no_light_states:
 		print('Cannot combine --summary with --no-light-states')
@@ -876,7 +876,7 @@ def do_scene_capture(args):
 			print('No lights or groups specified. Nothing to do.')
 			exit(1)
 
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	if args.group_scene:
 		hue.capture_scene(args.name, groupscene=args.group_scene)
@@ -912,7 +912,7 @@ def do_scene_dump(args):
 	nlights= 0
 	hastt= 0
 
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	# Get light data so we can get names
 	lights= hue.get_all_lights()
@@ -1051,7 +1051,7 @@ def do_scene_dump(args):
 
 def do_scene_load(args):
 	sdef= configparser.ConfigParser(interpolation=None)
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 	sceneid= None
 	errors= False
 	newscene= True
@@ -1191,13 +1191,13 @@ def do_scene_load(args):
 	scene.save()
 
 def do_scene_rename(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	scene= hue.get_scene(args.id)
 	scene.rename(args.name)
 
 def do_scene_del(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	for sceneid in args.id:
 		try:
@@ -1207,7 +1207,7 @@ def do_scene_del(args):
 			print(e)
 
 def do_scene_play(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	for sceneid in args.id:
 		try:
@@ -1221,7 +1221,7 @@ def do_scene_play(args):
 #----------------------------------------------------------------------------
 
 def do_schedule_delete(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	for scheduleid in args.id:
 		try:
@@ -1231,7 +1231,7 @@ def do_schedule_delete(args):
 			print(e)
 
 def do_schedule(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	scheds= dict()
 	scenes= dict()
@@ -1351,7 +1351,7 @@ def do_sensor(args):
 #----------------------------------------------------------------------------
 
 def do_rlinks_get(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	rlinks= dict()
 
@@ -1381,7 +1381,7 @@ def do_rlinks_get(args):
 #----------------------------------------------------------------------------
 
 def do_bridge_config(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	if args.all:
 		raw_print(args, hue.get_datastore())
@@ -1391,7 +1391,7 @@ def do_bridge_config(args):
 	
 
 def do_users_get(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	userlist= hue.userlist()
 	for user in userlist.users():
@@ -1474,7 +1474,7 @@ def do_bridge_reg(args):
 #----------------------------------------------------------------------------
 
 def do_exec(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 	full_uri= True
 	method= 'GET'
 	data= None
@@ -1660,7 +1660,7 @@ def do_color(args):
 #----------------------------------------
 
 def do_touchlink(args):
-	hue= init_hue(args)
+	hue, config= init_hue(args)
 
 	print_wrap("Performing a touchlink action. The nearest light in range will be added to the bridge...")
 
