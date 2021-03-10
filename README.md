@@ -80,6 +80,7 @@ Hue Manager understands that a bridge's IP address may change, especially if it'
 * [Group management](#group-management)
 * [Light management](#light-management)
 * [Scene management](#scene-management)
+* [Sensor management](#sensor-management)
 
 ### Utility Commands
 
@@ -623,6 +624,38 @@ Play a light scene.
 | -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
 
 This command plays the given scenes. Scenes are recalled in the order they are given, so if a light appears in multiple scenes the last scene will win.
+
+----
+
+### Sensor Management
+
+Sensors are a complicated topic. A sensor, at the lowest level, is just a device that stores state that is collected from some external input. To be useful, however, the sensor must trigger actions based on conditions, and these are defined in **rules**. Further complicating the matter: physical devices often contain multiple sensors (the Hue Motion Sensor, for instance, provides both a motion sensor and a light sensor), and operations such as button presses can be "overloaded" to perform multiple functions based on how many times they are pressed within a certain amount of time...with the timer defined in a **schedule**.
+
+Thus, in the Hue system, a physical device such as the Hue Motion Sensor or the Hue Dimmer Switch is modeled by more than just a **sensor** on the bridge: it is a combination of one _or more_ **sensors**, one or more **rules**, and zero or more **schedules** that work in concert to produce complex behaviors. 
+
+#### huemgr sensor
+
+Print sensor information and state.
+
+`huemgr sensor [ -b bridge ] [ -r | -R ] [ -S ] [ -p ] [ -s {id|name|type} ] [ id [id ...] ]`
+
+| option | description |
+|----|----|
+| uri | The URI (API endpoint) to call on the bridge. You must provide the absolute URI, but see the **-p** option.|
+| -S<br/>--status | Print the status for each sensor. Note that some sensors have multiple status fields. |
+| -R<br/>--pretty | Pretty-print the bridge response. |
+| -p<br/>--physical-only | Show only sensors that the bridge recognizes as physical devices. This removes the Daylight and any CLIP sensors from the list. |
+| -s FIELD<br/>--sort FIELD | Sort the output by one of the following fields: id, name, type. The default is to sort by ID. |
+
+This command prints information about sensors and, with the -S option, includes their state.
+
+The Hue Bridge supports a number of physical devices as sensors, which includes the Hue Dimmer Switches and the Hue Tap, as well as motion, light, humidity and temperature sensors.
+
+Some products, such as the Hue Motion Sensor and Hue Outdoor Motion Sensor, provide multiple sensors, but these are still considered individual sensors from the bridge's perspective. Thus a single product (such as the Hue Outdoor Motion Sensor) will result in multiple sensors being created (a motion sensor, a light sensor, and a temperature sensor). The network address of the sensor can be used to identify multiple sensors on a single device.
+
+In addition to physical devices, some applications will create virtual sensors on the bridge to store and maintain a state value. These are referred to as CLIP sensors, and they work together with rules to enable complex behaviors such as scene cycling when a button is pressed multiple times (e.g. the behavior of the "On" button on a Hue Dimmer Switch), or storing the last on/off state for a particular light. The -p option will filter out CLIP sensors.
+
+All Hue bridges implement a sensor named Daylight, which uses solar ephemeris data for the current timezone to keep track of day and night.
 
 ----
 
