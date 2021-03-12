@@ -785,6 +785,7 @@ def do_scene(args):
 					gname= 'group 0/all lights'
 				else:
 					group= groups[scene.group]
+					gname= group.name
 				sceneinfo+= f' {scene.name} ({scene.type}: {gname})'
 			else:
 				sceneinfo+= f' {scene.name} ({scene.type})'
