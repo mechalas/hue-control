@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 from huectl.light import HueLight
 from huectl.group import HueGroup, HueGroupType
 from huectl.scene import HueScene
+from huectl.accessory import HueAccessory
 from huectl.sensor import HueSensor
 from huectl.schedule import HueSchedule
 from huectl.time import HueDateTime
@@ -310,6 +311,17 @@ class HueBridge:
 
 	def touchlink(self):
 		self.modify_configuration(touchlink=True)
+
+	# Return Hue accessories. This requires us to get the sensor
+	# list.
+
+	def get_all_accessories(self, sensors=None):
+		if sensors is None:
+			sensors= self.get_all_sensors()
+
+		accessories= HueAccessory.collate(sensors)
+
+		return accessories
 
 	#------------------------------------------------------------
 	# Bridge API
@@ -707,6 +719,7 @@ class HueBridge:
 
 	def get_all_rules(self, raw=False):
 		data= self.call('rules', raw=raw)
+		print(data)
 		if raw:
 			return data
 

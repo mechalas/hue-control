@@ -145,7 +145,7 @@ class HueSensor():
 		return self.uniqueid[0:23]
 
 	def is_primary(self):
-		if 'primary' in capabilities:
+		if 'primary' in self.capabilities:
 			return self.capabilities['primary']
 
 		return False
