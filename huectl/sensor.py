@@ -133,7 +133,6 @@ class HueSensor():
 		self.capabilities= {}
 		self.children= list()
 		self.parent= None
-		self._has_children= None
 
 	def __str__(self):
 		return f'<HueSensor> {self.id} {self.name} ({self.type})'
@@ -149,7 +148,4 @@ class HueSensor():
 			return self.capabilities['primary']
 
 		return False
-
-	def has_children(self):
-		return self._has_children
 
