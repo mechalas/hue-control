@@ -77,6 +77,7 @@ Hue Manager understands that a bridge's IP address may change, especially if it'
 
 ### Hue System Control Commands
 
+* [Accessory management](#accessory-management)
 * [Group management](#group-management)
 * [Light management](#light-management)
 * [Scene management](#scene-management)
@@ -89,6 +90,28 @@ Hue Manager understands that a bridge's IP address may change, especially if it'
 ### Misc Commands
 
 * [Color functions](#color-functions)
+
+----
+
+### Accessory Management
+
+An accessory is any Hue device that is not a light. These are currently devices containing one or more [sensors](#sensor-management) in a single, physical package such as the Hue Dimmer Switch or Hue Motion Sensor. Accessories are not stored on the bridge as a single unit: they are instead "grouped" together by a common sensor address, with one of the sensors being designated as the "primary".
+
+* [**huemgr accessory**](#huemgr-accessory): show accessory information
+
+#### huemgr accessory
+
+Print accessory information and member sensors
+
+`usage: huemgr accessory [-b BRIDGE] [-s {name,id,product}] [id [id ...]]`
+
+| option | description|
+|---|---|
+| id | Optional list of primary sensor IDs |
+| -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
+| -s FIELD<br/>--sort FIELD | Sort list by the specified field. Can be one of: name, id, product |
+
+This command retrieves a list of physical Hue accessories known to the bridge.
 
 ----
 
