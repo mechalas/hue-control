@@ -1756,7 +1756,7 @@ subparsers= parser.add_subparsers()
 # Accessory/device management
 #--------------------
 
-parser_acc= subparsers.add_parser('accessories',
+parser_acc= subparsers.add_parser('accessory',
 	help='List Hue accessories')
 standard_args(parser_acc, 'bridge')
 parser_acc.add_argument('-s', '--sort', choices=['name','product','id'],
