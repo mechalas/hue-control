@@ -8,8 +8,7 @@
 # items.
 
 class HueCollection:
-	def __init__(self, *args, **kwargs):
-		self.item_type= args[0]
+	def __init__(self):
 		self.resolved_items= dict()
 		self.unresolved_item_ids= set()
 
@@ -17,7 +16,7 @@ class HueCollection:
 	# but NOT the objects that they reference.
 
 	def clone(self):
-		h= HueCollection(self.item_type)
+		h= HueCollection()
 		h.resolved_items.update(self.resolved_items)
 		h.unresolved_item_ids= set(self.unresolved_item_ids)
 		return h
@@ -64,8 +63,6 @@ class HueCollection:
 
 		for itemid, itemobj in items.items():
 			skey= str(itemid)
-			if self.item_type != type(itemobj):
-				raise TypeError(f'Expected {self.item_type}')
 
 			if skey not in self.resolved_items:
 				rv= True
@@ -137,6 +134,6 @@ class HueContainer:
 		if item in self.collections:
 			return self.collections[item]
 
-	def add_collection(self, name, dtype):
-		self.collections[name]= HueCollection(dtype)
+	def add_collection(self, name):
+		self.collections[name]= HueCollection()
 

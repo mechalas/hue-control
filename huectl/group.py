@@ -243,12 +243,14 @@ class HueGroup(HueContainer):
 		self.modelid= None
 		self.uniqueid= None
 		self.room_class= None
-		self.add_collection('lights', HueLight)
+		#self.add_collection('lights', HueLight)
+		self.add_collection('lights')
 
 		self.state= None
 		self.recycle= None
 
-		self.add_collection('sensors', HueSensor)
+		#self.add_collection('sensors', HueSensor)
+		self.add_collection('sensors')
 		self.presence= None
 
 		self.lightlevel= None

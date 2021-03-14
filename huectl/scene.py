@@ -86,8 +86,10 @@ class HueScene(HueContainer):
 		self.image= None
 
 		# Scenes support lights but not sensors
-		self.add_collection('lights', HueLight)
-		self.add_collection('lightstates', HueLightPreset)
+		#self.add_collection('lights', HueLight)
+		#self.add_collection('lightstates', HueLightPreset)
+		self.add_collection('lights')
+		self.add_collection('lightstates')
 
 
 	def __str__(self):
