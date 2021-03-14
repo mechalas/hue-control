@@ -715,7 +715,7 @@ class HueBridge:
 		if raw:
 			return data
 
-		return HueRule(ruleid=ruleid, bridge=self, obj=data)
+		return HueRule.parse_definition(data, bridge=self, ruleid=ruleid)
 
 	def get_all_rules(self, raw=False):
 		data= self.call('rules', raw=raw)
@@ -725,7 +725,7 @@ class HueBridge:
 
 		rules= dict()
 		for ruleid, ruledata in data.items():
-			rule= HueRule(ruleid=ruleid, bridge=self, obj=ruledata)
+			rule= HueRule.parse_definition(ruledata, ruleid=ruleid, bridge=self)
 			rules[ruleid]= rule
 
 		return rules

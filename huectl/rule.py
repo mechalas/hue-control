@@ -71,29 +71,28 @@ class HueRule:
 	@staticmethod
 	def parse_definition(obj, bridge=None, ruleid=None):
 		if isinstance(obj, str):
-			d= json.loads(obj)
-			self._load(d)
+			data= json.loads(obj)
 		elif isinstance(obj, dict):
-			self._load(obj)
+			data= obj
 		else:
 			raise TypeError 
 
 		rule= HueRule(bridge)
 
 		rule.id= ruleid
-		self.name= data['name']
+		rule.name= data['name']
 
 		if 'lasttriggered' in data:
 			if data['lasttriggered'] != 'none':
-				self.lasttriggered= HueDateTime(data['lasttriggered'])
+				rule.lasttriggered= HueDateTime(data['lasttriggered'])
 
 		if 'creationtime' in data:
-			self.lasttriggered= HueDateTime(data['creationtime'])
+			rule.lasttriggered= HueDateTime(data['creationtime'])
 
 		if 'status' in data:
-			self.status= data['status']
+			rule.status= data['status']
 
-		self.owner= data['owner']
+		rule.owner= data['owner']
 
 		for cdata in data['conditions']:
 			if 'value' in cdata:
@@ -101,8 +100,10 @@ class HueRule:
 			else:
 				value= None
 
-			self.conditions.append(HueCondition(self, address=cdata['address'],
+			rule.conditions.append(HueCondition(rule, address=cdata['address'],
 				operator=cdata['operator'], value=value))
+
+		return rule
 
 	def __init__(self, bridge):
 		self.bridge= bridge
