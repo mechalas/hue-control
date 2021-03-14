@@ -291,15 +291,20 @@ def do_acc(args):
 
 	if args.sort:
 		if args.sort == 'id':
-			field= 'primary_id'
-		else:
-			field= args.sort
-		acclist.sort(key=lambda x: getattr(x, field))
+			accessories.sort(key=lambda x: x.primary_id)
+		elif args.sort == 'name':
+			accessories.sort(key=lambda x: x.name())
+		elif args.sort == 'product':
+			accessories.sort(key=lambda x: x.productname())
 
 	for acc in accessories:
 		accname= acc.name()
 		prodname= acc.productname()
 		print(f'{acc.primary_id} {accname} ({prodname})')
+		if args.sensors:
+			for sensor in acc.sensors:
+				print(f'  {sensor.id} {sensor.name} ({sensor.type})')
+			print()
 
 
 #----------------------------------------------------------------------------
@@ -1761,6 +1766,8 @@ parser_acc= subparsers.add_parser('accessory',
 standard_args(parser_acc, 'bridge')
 parser_acc.add_argument('-s', '--sort', choices=['name','product','id'],
 	help='Sort list by field')
+parser_acc.add_argument('-S', '--sensors', action='store_true',
+	help='Show individual sensors')
 parser_acc.add_argument('id', nargs='*', help='Accessory primary IDs')
 parser_acc.set_defaults(func=do_acc)
 
