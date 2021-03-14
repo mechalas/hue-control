@@ -99,19 +99,22 @@ An accessory is any Hue device that is not a light. These are currently devices 
 
 * [**huemgr accessory**](#huemgr-accessory): show accessory information
 
+----
+
 #### huemgr accessory
 
 Print accessory information and member sensors
 
-`usage: huemgr accessory [-b BRIDGE] [-s {name,id,product}] [id [id ...]]`
+`usage: huemgr accessory [ -S ] [-b BRIDGE] [-s {name,id,product}] [id [id ...]]`
 
 | option | description|
 |---|---|
 | id | Optional list of primary sensor IDs |
 | -b BRIDGE<br/>--bridge BRIDGE | Bridge to use. Can specify a serial number, friendly name, or IP address |
 | -s FIELD<br/>--sort FIELD | Sort list by the specified field. Can be one of: name, id, product |
+| -S<br/>--sensors | Show the individual sensors in a device |
 
-This command retrieves a list of physical Hue accessories known to the bridge.
+This command retrieves a list of physical Hue accessories known to the bridge. If the -**-sensors** option is provided, the individual sensors in the device will be printed as well. Note that some devices, such as light switches, only have one sensor.
 
 ----
 
