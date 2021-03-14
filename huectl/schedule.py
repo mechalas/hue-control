@@ -1,61 +1,65 @@
 from huectl.time import parse_timespec
 from isodate import parse_datetime
-
-class HueCommand:
-	def __init__(self, schedule, obj=None):
-		self.schedule= schedule
-
-		self.address= None
-		self.method= None
-		self.body= None
-
-		if obj is None:
-			return
-
-		if isinstance(obj, str):
-			d= json.loads(obj)
-			self._load(d)
-		elif isinstance(obj, dict):
-			self._load(obj)
-		else:
-			raise TypeError	
-
-	def __str__(self):
-		return '<HueCommand>'
-
-	def _load(self, data):
-		self.address= data['address']
-		self.method= data['method']
-		self.body= data['body']
-
-	def target(self):
-		comp= self.address.split('/')
-		objtype= comp[3]
-		objid= comp[4]
-		bridge= self.schedule.bridge
-
-		if objtype == 'groups':
-			return bridge.get_group(objid)
-		elif objtype == 'lights':
-			return bridge.get_light(objid)
-		elif objtype == 'sensors':
-			return bridge.get_sensor(objid)
-		elif objtype == 'schedules':
-			return bridge.get_schedule(objid)
+from huectl.action import HueAction
 
 class HueScheduleStatus:
 	Enabled= 'enabled'
 	Disabled= 'disabled'
 
-class HueSchedule:
-	def __init__(self, schedid=None, bridge=None, obj=None):
-		if bridge is None:
-			raise ValueError('bridge cannot be None')
+#----------------------------------------------------------------------------
+# A Hue Schedule
+#----------------------------------------------------------------------------
 
+class HueSchedule:
+	@staticmethod
+	def parse_definition(obj, bridge=None, scheduleid=None):
+		if isinstance(obj, str):
+			data= json.loads(obj)
+		elif isinstance(obj, dict):
+			data= obj
+		else:
+			raise TypeError('obj: expected str or dict not '+str(type(obj)))
+
+		if not isinstance(scheduleid, (int, str)):
+			raise TypeError('scheduleid: Expected int or str, not '+str(type(scheduleid)))
+
+		schedule= HueSchedule(bridge)
+
+		schedule.id= scheduleid
+
+		# Optional attrs
+
+		if 'name' in data:
+			schedule.name= data['name']
+		if 'description' in data:
+			schedule.description= data['description']
+		if 'starttime' in data:
+			schedule.starttime= parse_datetime(data['created'])
+		if 'autodelete' in data:
+			schedule.autodelete= data['autodelete']
+		if 'status' in data:
+			schedule.status= data['status']
+
+		# Deprecated
+
+		if 'time' in data:
+			schedule.localtime= parse_timespec(data['time'])
+
+		# Required
+
+		if 'localtime' in data:
+			schedule.localtime= parse_timespec(data['localtime'])
+
+		schedule.created= parse_datetime(data['created'])
+		schedule.command= HueAction.parse_definition(data['command'], parent=schedule)
+
+		return schedule
+
+	def __init__(self, bridge):
 		self.bridge= bridge
 
-		self.id= schedid
-		self.name= 'unnamed schedule'
+		self.id= None
+		self.name= None
 		self.description= None
 		self.localtime= None
 		self.autodelete= True
@@ -64,48 +68,8 @@ class HueSchedule:
 		self.recycle= False
 		self.start_time= None
 		self.created= None
-
-		if obj is None:
-			return
-
-		if isinstance(obj, str):
-			d= json.loads(obj)
-			self.load(d)
-		elif isinstance(obj, dict):
-			self.load(obj)
-		else:
-			raise TypeError
+		self.command= None
 
 	def __str__(self):
-		return f'<HueSchedule> {self.id} {self.name} {self.status} {self.localtime}'
-
-	def load(self, data):
-		if not isinstance(data, dict):
-			raise TypeError
-
-		# Optional attrs
-
-		if 'name' in data:
-			self.name= data['name']
-		if 'description' in data:
-			self.description= data['description']
-		if 'starttime' in data:
-			self.starttime= parse_datetime(data['created'])
-		if 'autodelete' in data:
-			self.autodelete= data['autodelete']
-		if 'status' in data:
-			self.status= data['status']
-
-		# Deprecated
-
-		if 'time' in data:
-			self.localtime= parse_timespec(data['time'])
-
-		# Required
-
-		if 'localtime' in data:
-			self.localtime= parse_timespec(data['localtime'])
-
-		self.created= parse_datetime(data['created'])
-		self.command= HueCommand(self, data['command'])
+		return f'<HueSchedule> {self.id} {self.name}, {self.description}, {self.status} {self.localtime}'
 

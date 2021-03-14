@@ -68,25 +68,8 @@ class HueRuleStatus:
 	Disabled= 'disabled'
 
 class HueRule:
-	def __init__(self, ruleid=None, bridge=None, obj=None):
-		self.name= None
-		self.ruleid= ruleid
-		self.lasttriggered= None
-		self.creationtime= None
-		self.timestriggered= 0
-		self.owner= None
-		self.status= HueRuleStatus.Enabled
-		self.conditions= list()
-		self.actions= list()
-
-		if bridge is None:
-			raise ValueError('bridge cannot be None')
-
-		self.bridge= bridge
-
-		if obj is None:
-			return
-
+	@staticmethod
+	def parse_definition(obj, bridge=None, ruleid=None):
 		if isinstance(obj, str):
 			d= json.loads(obj)
 			self._load(d)
@@ -95,11 +78,11 @@ class HueRule:
 		else:
 			raise TypeError 
 
-	def __str__(self):
-		return f'<HueRule> {self.ruleid} {self.name}, {self.status}'
+		rule= HueRule(bridge)
 
-	def _load(self, data):
+		rule.id= ruleid
 		self.name= data['name']
+
 		if 'lasttriggered' in data:
 			if data['lasttriggered'] != 'none':
 				self.lasttriggered= HueDateTime(data['lasttriggered'])
@@ -120,4 +103,19 @@ class HueRule:
 
 			self.conditions.append(HueCondition(self, address=cdata['address'],
 				operator=cdata['operator'], value=value))
+
+	def __init__(self, bridge):
+		self.bridge= bridge
+		self.name= None
+		self.ruleid= None
+		self.lasttriggered= None
+		self.creationtime= None
+		self.timestriggered= 0
+		self.owner= None
+		self.status= HueRuleStatus.Enabled
+		self.conditions= list()
+		self.actions= list()
+
+	def __str__(self):
+		return f'<HueRule> {self.ruleid} {self.name}, {self.status}'
 
