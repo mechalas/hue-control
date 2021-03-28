@@ -47,6 +47,7 @@ HueEphemeralScenes= (
 
 class Config:
 	DefaultFilename= '~/.huemgr'
+	DefaultCache= '~/.huecache'
 
 	def __init__(self, filename):
 		if not filename:
@@ -236,10 +237,15 @@ class Config:
 		if len(args) == 1:
 			if param in cf:
 				return cf[param]
+			elif param == 'cache_file':
+				return Config.DefaultCache
+
 			return None
+
 		elif len(args) == 2:
 			cf[param]= args[1]
 			self.save()
+
 		elif len(args) > 2:
 			cf[param]= ','.join(args[1:])
 			self.save()
@@ -1302,16 +1308,24 @@ def do_schedule(args):
 			if skip:
 				continue
 
-		print(sched)
+		sinfo= f'{sched.id} {sched.name} ({sched.description})'
+		if isinstance(sched.localtime, HueDateTime):
+			dt= sched.localtime.strftime()
+			sinfo+= f' starting at {dt}'
+		elif isinstance(sched.localtime, HueRecurringTime):
+			dt= sched.localtime.strftime()
+			days= sched.localtime.daysofweek()
+			sinfo+= f' {days} starting at {dt}'
+		print(sinfo)
 		cmd= sched.command
 #		target= sched.command.target()
-		print(f"    {cmd}")
+#		print(f"    {cmd}")
 #		if isinstance(target, HueGroup):
 #			if 'scene' in sched.command.body:
 #				sceneid= sched.command.body['scene']
 #				scene= scenes[sceneid]
 #				print("        "+str(scene))
-		print()
+#		print()
 
 
 #----------------------------------------------------------------------------
@@ -1571,7 +1585,8 @@ def init_hue(args):
 	# doesn't work, do a quick search to see if it's moved.
 
 	try:
-		hue= HueBridge(addr, user_id=user_id, serial=serial)
+		hue= HueBridge(addr, user_id=user_id, serial=serial, 
+			cache_file=config.param('cache_file'))
 		return hue, config
 	except Exception as e:
 		print(str(e))
@@ -1589,7 +1604,8 @@ def init_hue(args):
 		config.update(serial, addr=addr)
 
 		try:
-			hue= HueBridge(addr, user_id=user_id)
+			hue= HueBridge(addr, user_id=user_id,
+				cache_file=config.param('cache_file'))
 			return hue, config
 		except Exception as e:
 			print(str(e))
