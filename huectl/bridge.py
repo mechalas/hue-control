@@ -179,9 +179,19 @@ class HueBridge:
 	# in seconds. This is defined by the bridge API.
 	SearchTime= 40	
 
-	# How often to refresh lights, groups, schedules, rules, sensors, 
-	# and scenes in the cache. 
-	CacheRefreshInterval= 300	
+	# How often to refresh groups, rules, scenes, and schedules in the cache
+	# (in seconds). The bridge will always mark the caches as dirty if they
+	# know something has changed, but it won't be aware of changes made in
+	# other applications. Hence, we don't want to make this too long or
+	# the user will wonder why those changes don't show up.
+	CacheRefreshInterval= 60
+
+	# How often to refresh lights and sensors in the cache (in seconds).
+	# This should generally be really short since light and sensor states
+	# change rapidly. It's primary purpose is to prevent the API from
+	# repeatedly asking for the same information multiple times in rapid
+	# succession.
+	ShortCacheRefreshInterval= 5
 
 	def __init__(self, address, user_id=None, serial=None, cache_file=None):
 		self.user_id= '0'
@@ -191,6 +201,7 @@ class HueBridge:
 		self.request_defaults= dict()
 		self.cache= None
 		self.refresh= HueBridge.CacheRefreshInterval
+		self.short_refresh= HueBridge.ShortCacheRefreshInterval
 
 		# If we were sent a serial number, verify that we are talking to the
 		# correct bridge before we send a user id.
@@ -339,10 +350,12 @@ class HueBridge:
 
 		return accessories
 
-	def cache_ok(self, oclass):
+	def cache_ok(self, oclass, short=False):
 		if not self.cache:
 			return False
 
+		if short:
+			return self.cache.is_current(oclass, self.short_refresh)
 		return self.cache.is_current(oclass, self.refresh)
 
 	#------------------------------------------------------------
@@ -599,7 +612,8 @@ class HueBridge:
 		data= None
 
 		if use_cache and self.cache:
-			if self.cache_ok('lights'):
+			# Use the short refresh interval for lights
+			if self.cache_ok('lights', short=True):
 				data= self.cache.lights[lightid]
 
 		if data is None:
@@ -614,7 +628,8 @@ class HueBridge:
 		data= None
 
 		if use_cache and self.cache:
-			if self.cache_ok('lights'):
+			# Use the short refresh interval for lights
+			if self.cache_ok('lights', short=True):
 				data= self.cache.lights
 
 		if not data:
