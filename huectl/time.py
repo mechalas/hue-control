@@ -71,17 +71,18 @@ def parse_timespec(s):
 			return HueRecurringTimer(*groups)
 
 
-# Convert the bbb spec, which is effectively a bitmask of days 0-7, to a
-# list of day numbers (0-7)
+# Convert the bbb spec, which is effectively a bitmask of days 0-6, to a
+# list of day numbers (0-6), but LSB to HSB.
 
 def dayspec_to_list(spec):
 	days= list()
 	dayspec= int(spec)
+	print(dayspec)
 	if dayspec < 1 or dayspec > 0b1111111:
 		raise ValueError(dayspec)
 
 	for i in range(0,7):
-		if (0b1 << i) & dayspec:
+		if (0b1 << (6-i)) & dayspec:
 			days.append(i)
 
 	return days
@@ -154,7 +155,9 @@ class HueDateTime:
 
 	# NOTE: This ignores the randomized time
 
-	def strftime(self, fmt):
+	def strftime(self, fmt= None):
+		if fmt is None:
+			fmt=' %a %b %d %Y at %H:%M:%S %Z'
 		return self.time.strftime(fmt)
 
 #============================================================================
@@ -177,6 +180,23 @@ class HueRecurringTime:
 
 		if len(args) == 3:
 			self.random= parse_time(args[2])
+
+	def daysofweek(self):
+		ranges= list()
+		print(self.days)
+		for r in day_ranges(self.days):
+			if r[0] == r[1]:
+				ranges.append(calendar.day_abbr[r[0]])
+			else:
+				ranges.append('-'.join(
+					list(map(lambda x: calendar.day_abbr[x], r))
+				))
+		return ','.join(ranges)
+
+	def strftime(self, fmt=None):
+		if fmt is None:
+			fmt='%H:%M:%S'
+		return self.time.strftime(fmt)
 
 	def __str__(self):
 		s= '<HueRecurringTime> Every '
