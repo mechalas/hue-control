@@ -16,6 +16,7 @@ from huectl.schedule import HueSchedule
 from huectl.time import HueDateTime
 from huectl.version import HueApiVersion
 from huectl.rule import HueRule
+from huectl.cache import HueCache
 
 class HueBridgeConfiguration:
 	def __init__(self, data):
@@ -173,16 +174,23 @@ class HueDeviceScanResults():
 #============================================================================
 
 class HueBridge:
-	SearchTime= 40	# The length of time the bridge spends searching for
-					# new lights, in seconds. This is defined by the 
-					# bridge API.
 
-	def __init__(self, address, user_id=None, serial=None):
+	# The length of time the bridge spends searching for new lights,
+	# in seconds. This is defined by the bridge API.
+	SearchTime= 40	
+
+	# How often to refresh lights, groups, schedules, rules, sensors, 
+	# and scenes in the cache. 
+	CacheRefreshInterval= 300	
+
+	def __init__(self, address, user_id=None, serial=None, cache_file=None):
 		self.user_id= '0'
 		self.address= address
 		self.config= None
 		self.proto= None
 		self.request_defaults= dict()
+		self.cache= None
+		self.refresh= HueBridge.CacheRefreshInterval
 
 		# If we were sent a serial number, verify that we are talking to the
 		# correct bridge before we send a user id.
@@ -201,6 +209,14 @@ class HueBridge:
 			self.set_user_id(user_id)
 
 		self._load_config()
+
+		if cache_file is not None:
+			self.cache= HueCache(cache_file)
+			self.cache.load()
+		
+	def __del__(self):
+		if self.cache:
+			self.cache.save()
 
 	def set_user_id(self, user_id):
 		self.user_id= user_id
@@ -323,6 +339,12 @@ class HueBridge:
 
 		return accessories
 
+	def cache_ok(self, oclass):
+		if not self.cache:
+			return False
+
+		return self.cache.is_current(oclass, self.refresh)
+
 	#------------------------------------------------------------
 	# Bridge API
 	#------------------------------------------------------------
@@ -334,8 +356,16 @@ class HueBridge:
 	# Groups
 	#--------------------
 
-	def get_group(self, groupid, raw=False, lights=None, sensors=None):
-		data= self.call(f'groups/{groupid}', raw=raw)
+	def get_group(self, groupid, raw=False, lights=None, sensors=None, use_cache=True):
+		data= None
+
+		if use_cache and self.cache:
+			if self.cache_ok('groups'):
+				data= self.cache.groups[groupid]
+		
+		if data is None:
+			data= self.call(f'groups/{groupid}', raw=raw)
+
 		if raw:
 			return data 
 
@@ -347,8 +377,19 @@ class HueBridge:
 
 		return group
 
-	def get_all_groups(self, raw=False, lights=None, sensors=None):
-		data= self.call('groups', raw=raw)
+	def get_all_groups(self, raw=False, lights=None, sensors=None, use_cache=True):
+		data= None
+
+		if use_cache and self.cache:
+			if self.cache_ok('groups'):
+				data= self.cache.groups
+
+		if not data:
+			data= self.call('groups', raw=raw)
+
+		if use_cache and self.cache and data is not None:
+			self.cache.update({'groups': data})
+
 		if raw:
 			return data 
 
@@ -393,6 +434,9 @@ class HueBridge:
 
 		if len(errors):
 			raise huectl.exception.AttrsNotSet(errors)
+
+		if self.cache:
+			self.cache.mark_dirty('groups')
 
 		return True
 
@@ -450,6 +494,9 @@ class HueBridge:
 		if len(errors):
 			raise huectl.exception.AttrsNotSet(errors)
 
+		if self.cache:
+			self.cache.mark_dirty('groups')
+
 		# Return the group ID
 		return newid
 
@@ -465,12 +512,15 @@ class HueBridge:
 		errors= []
 		for elem in rv:
 			if 'success' in rv:
-				newid= rv['success']['id']
+				delid= rv['success']['id']
 			elif 'error' in elem:
 				errors.append(elem[error].keys()[0])
 
 		if len(errors):
 			raise huectl.exception.AttrsNotSet(errors)
+
+		if self.cache:
+			self.cache.mark_dirty('groups')
 
 	def set_group_state(self, groupid, state):
 		rv= self.call(f'groups/{groupid}/action', method='PUT', data=state)
@@ -520,6 +570,9 @@ class HueBridge:
 		if 'success' not in rv[0]:
 			raise huectl.exception.BadResponse(rv)
 
+		if self.cache:
+			self.cache.mark_dirty()
+
 		return HueDeviceScanResults(self)
 
 	# Get lights that were discovered during the last search (see
@@ -542,15 +595,34 @@ class HueBridge:
 
 	# Get a specific light by its id
 
-	def get_light(self, lightid, raw=False):
-		data= self.call(f'lights/{lightid}', raw=raw)
+	def get_light(self, lightid, raw=False, use_cache=True):
+		data= None
+
+		if use_cache and self.cache:
+			if self.cache_ok('lights'):
+				data= self.cache.lights[lightid]
+
+		if data is None:
+			data= self.call(f'lights/{lightid}', raw=raw)
+
 		if raw:
 			return data
 
 		return HueLight.parse_definition(data, lightid=lightid, bridge=self)
 		
-	def get_all_lights(self, raw=False):
-		data= self.call('lights', raw=raw)
+	def get_all_lights(self, raw=False, use_cache=True):
+		data= None
+
+		if use_cache and self.cache:
+			if self.cache_ok('lights'):
+				data= self.cache.lights
+
+		if not data:
+			data= self.call('lights', raw=raw)
+
+		if use_cache and self.cache and data is not None:
+			self.cache.update({'lights': data})
+
 		if raw:
 			return data 
 
@@ -582,6 +654,9 @@ class HueBridge:
 		if len(errors):
 			raise huectl.exception.AttrsNotSet(errors)
 
+		if self.cahce:
+			self.cache.mark_drty('lights')
+
 		return True
 
 	def set_light_state(self, lightid, state):
@@ -601,17 +676,45 @@ class HueBridge:
 		if len(errors):
 			raise huectl.exception.AttrsNotSet(errors)
 				
+		if self.cahce:
+			self.cache.mark_drty('lights')
+
 		return True
 
 
 	# Scenes
 	#--------------------
 
-	def get_all_scenes(self, raw=False, lights=None):
+	def get_all_scenes(self, raw=False, lights=None, use_cache=True):
+		data= None
+
 		if self.api_version() < HueApiVersion('1.1'):
 			raise huectl.exception.APIVersion(have=str(self.api_version()), need='1.1')
 
-		data= self.call('scenes', raw=raw)
+		if use_cache and self.cache:
+			if self.cache_ok('scenes'):
+				data= self.cache.scenes
+
+		if data is not None:
+			refresh= list()
+
+			# Now find all the scenes that have changed. Scene attrs are cached
+			# individually, so delete from the cache those that have expired.
+			for sceneid,scenedef in data.items():
+				attr= self.cache.scene_attrs
+				try:
+					if attr[sceneid]['lastupdate'] < scenedef['lastupdate']:
+						# Delete our cached object
+						del attr[sceneid]
+				except KeyError:
+					pass
+
+		else:
+			data= self.call('scenes', raw=raw)
+
+		if use_cache and self.cache and data is not None:
+			self.cache.update({'scenes': data})
+
 		if raw:
 			return data
 
@@ -624,8 +727,19 @@ class HueBridge:
 
 		return scenes
 
-	def get_scene(self, sceneid, raw=False, lights=None):
-		data= self.call(f'scenes/{sceneid}', raw=raw)
+	def get_scene(self, sceneid, raw=False, lights=None, use_cache=True):
+		data= None
+
+		if use_cache and self.cache:
+			if sceneid in self.cache.scene_attrs:
+				data= self.cache.scene_attrs[sceneid]
+
+		if data is None:
+			data= self.call(f'scenes/{sceneid}', raw=raw)
+
+		if use_cache and self.cache and data is not None:
+			self.cache.update_oid('scene_attrs', {sceneid: data})
+
 		if raw:
 			return data
 
@@ -644,6 +758,9 @@ class HueBridge:
 			raise huectl.exception.BadResponse(str(rv))
 
 		if 'success' in rv[0]:
+			if self.cache:
+				self.cache.mark_dirty('scenes')
+				self.cache.delete_oid('scene_attrs', sceneid)
 			return True
 
 		raise huectl.exception.BadResponse(str(rv[0]))
@@ -670,6 +787,10 @@ class HueBridge:
 		if 'success' not in rv[0]:
 			raise huectl.exception.BadResponse(rv)
 
+		if self.cache:
+			self.mark_dirty('scenes')
+			self.cache.delete_oid('scene_attrs', sceneid)
+
 	def create_scene(self, scenedef, sceneid=None):
 		uri= 'scenes'
 
@@ -691,6 +812,9 @@ class HueBridge:
 
 		if 'success' not in rv[0]:
 			raise huectl.exception.BadResponse(rv)
+
+		if self.cache:
+			self.mark_dirty('scenes')
 
 		# Return the new scene's id
 		return rv[0]['success']['id']
@@ -734,7 +858,7 @@ class HueBridge:
 	#--------------------
 
 	def get_schedule(self, scheduleid, raw=False):
-		data= self.call(f'schedules/{scheduleid}')
+		data= self.call(f'schedules/{scheduleid}', raw=raw)
 		if raw:
 			return data
 

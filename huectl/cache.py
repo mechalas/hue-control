@@ -10,7 +10,11 @@ import os.path
 # A class for caching Hue objects. For objects like lights and sensors,
 # this is really to prevent rapid-fire requests to the bridge so a short
 # cache life is in order. For schedules, rules, and groups, the cache life
-# can be a little longer. For scenes, we rely on the lastupdate property.
+# can be a little longer.
+#
+# For scene attributes, we rely on the lastupdate property. Scene 
+# attributes are cached individually, not as a whole, since they must be
+# fetched individually.
 #
 # Note that this class is not MP or MT safe. A process can read the cache and
 # write a new one while another process or thread has a stale copy.
@@ -19,10 +23,10 @@ import os.path
 #============================================================================
 
 class HueCache:
-	ValidObjs= ('light', 'groups', 'rules', 'scenes', 'schedules', 'sensors', '_control')
+	ValidObjs= ('lights', 'groups', 'rules', 'scenes', 'scene_attrs', 'schedules', 'sensors', '_control')
 	DefCache= {
 		'_control': {
-			'lastupdate': {}
+			'lastupdated': {}
 		}
 	}
 	MinLifetime= 5
@@ -85,12 +89,17 @@ class HueCache:
 	def lastupdate(self, oclass):
 		if oclass not in HueCache.ValidObjs:
 			raise ValueError(f"unknown object class {oclass}")
-		update= self._cache['_control']['lastupdate']
-		if oclass in update:
-			return update[oclass]
+
+		c= self._cache
+
+		try:
+			return c['_control']['lastupdated'][oclass]
+		except KeyError:
+			pass
 
 		return None
 
+	# Is our cache less than interval seconds old?
 	def is_current(self, oclass, interval):
 		# Our minimum interval 
 		if interval < HueCache.MinLifetime:
@@ -108,6 +117,35 @@ class HueCache:
 
 		return True
 
+	def mark_dirty(self, oclass):
+		if oclass not in HueCache.ValidObjs:
+			raise ValueError(f"unknown object class {oclass}")
+
+		self._cache['_control']['lastupdate']= None
+
+	def delete_oid(self, oclass, oid):
+		if oclass not in HueCache.ValidObjs:
+			raise ValueError(f"unknown object class {oclass}")
+		try:
+			del self._cache[oclass][oid]
+		except KeyError:
+			pass
+
+		return
+
+	def update_oid(self, oclass, obj):
+		if isinstance(obj, str):
+			data= json.loads(obj)
+		else:
+			data= obj
+
+		try:
+			c= self._cache[oclass]
+		except KeyError:
+			return
+
+		c.update(data)
+
 	def update(self, obj):
 		if isinstance(obj, str):
 			data= json.loads(obj)
@@ -119,12 +157,15 @@ class HueCache:
 		c= self._cache
 		c.update(data)
 		for k in data.keys():
-			print(k)
-			c['_control']['lastupdate'][k]= time.time()
+			try:
+				c['_control']['lastupdated'][k]= time.time()
+			except KeyError:
+				# Repair the cache
+				c['_control']['lastupdated']= dict()
 
 	def clear(self, oclass):
 		if oclass not in HueCache.ValidObjs:
 			raise ValueError(f"unknown object class {oclass}")
 		self._cache[oclass]= {}
-		self._cache['lastupdate'][oclass]= None
+		self._cache['lastupdated'][oclass]= None
 
