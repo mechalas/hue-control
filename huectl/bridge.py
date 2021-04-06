@@ -691,7 +691,7 @@ class HueBridge:
 		if len(errors):
 			raise huectl.exception.AttrsNotSet(errors)
 				
-		if self.cahce:
+		if self.cache:
 			self.cache.mark_drty('lights')
 
 		return True
