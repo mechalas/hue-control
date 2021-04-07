@@ -442,8 +442,8 @@ def hex_to_rgb(s):
 def rgb_to_hex(rgb):
 	r, g, b= rgb
 
-	return('#{:02x}{:02x}{:02x}'.format(round(r*255.0,0), round(g*255.0,0),
-		round(b*255.0,0)))
+	return('#{:02x}{:02x}{:02x}'.format(int(round(r*255.0,0)),
+		int(round(g*255.0,0)), int(round(b*255.0,0))))
 
 
 def hsb_to_rgb(*args):
