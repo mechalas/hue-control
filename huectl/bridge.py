@@ -691,8 +691,8 @@ class HueBridge:
 		if len(errors):
 			raise huectl.exception.AttrsNotSet(errors)
 				
-		if self.cahce:
-			self.cache.mark_drty('lights')
+		if self.cache:
+			self.cache.mark_dirty('lights')
 
 		return True
 
@@ -710,7 +710,15 @@ class HueBridge:
 			if self.cache_ok('scenes'):
 				data= self.cache.scenes
 
-		if data is not None:
+		if data is None:
+			data= self.call('scenes', raw=raw)
+
+		if raw:
+			return data
+
+		if use_cache and self.cache and data is not None:
+			self.cache.update({'scenes': data})
+
 			refresh= list()
 
 			# Now find all the scenes that have changed. Scene attrs are cached
@@ -723,15 +731,6 @@ class HueBridge:
 						del attr[sceneid]
 				except KeyError:
 					pass
-
-		else:
-			data= self.call('scenes', raw=raw)
-
-		if use_cache and self.cache and data is not None:
-			self.cache.update({'scenes': data})
-
-		if raw:
-			return data
 
 		scenes= dict()
 		for sceneid, scenedata in data.items():
@@ -746,6 +745,11 @@ class HueBridge:
 		data= None
 
 		if use_cache and self.cache:
+			# First, update our scenes cache to fine out which scene_attr objs
+			# have expired.
+
+			self.get_all_scenes()
+
 			if sceneid in self.cache.scene_attrs:
 				data= self.cache.scene_attrs[sceneid]
 

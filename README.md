@@ -30,11 +30,11 @@ _2020-03-28 Caching Support_
 
 Both the API and huemgr now support caching bridge objects.
 
-Lights have a short cache expiration time (currently defaults to 5 seconds) since their state can change rapidly. Sensors will eventually get this treatment, as well. Caching these objects really just prevents rapid-fire queries to the bridge.
+Lights have a short cache expiration time (it currently defaults to 5 seconds) since their state can change rapidly. Sensors will eventually get this treatment as well. Caching these objects really just prevents rapid-fire queries to the bridge, which is inefficient and rude.
 
-Groups, and eventually rules and schedules, have a longer expiration (currently 60 seconds). Again, it's mote to prevent rapid-fire queries. The side effect of caching these is that changes made in an external application may not be immediately visible.
+Groups, and eventually rules and schedules, have a longer expiration (currently set to 60 seconds). Again, it's designed to prevent rapid-fire queries to the bridge. The side effect of caching these is that changes made in an external application may not be immediately visible.
 
-Most objects are cached as collections: all lights, all sensors, etc. Scenes are an exception, since scene attributes have to be fetched individually of the full scene listing, which is expensive. Fortunately, scene definitions come with a **lastupdated** field which makes it easy to know which scene attributes have expired.
+Most objects are cached as complete collections: all lights, all sensors, etc. Scenes are an exception, since scene attributes have to be fetched individually (/api/_username_/states/_id_) and independently of the full scene listing (/api/_username_/states), which is expensive. Fortunately, scene definitions also come with a **lastupdated** field which makes it easy to know which scene attributes have expired, and thus selectively refresh only those scenes that need it.
 
 This will eventually eliminate the need for HueCollection since it provides a mechanism to fetch light states and sensor states on-demand in a fairly efficient manner.
 
