@@ -77,7 +77,6 @@ def parse_timespec(s):
 def dayspec_to_list(spec):
 	days= list()
 	dayspec= int(spec)
-	print(dayspec)
 	if dayspec < 1 or dayspec > 0b1111111:
 		raise ValueError(dayspec)
 
@@ -183,7 +182,6 @@ class HueRecurringTime:
 
 	def daysofweek(self):
 		ranges= list()
-		print(self.days)
 		for r in day_ranges(self.days):
 			if r[0] == r[1]:
 				ranges.append(calendar.day_abbr[r[0]])
@@ -266,6 +264,17 @@ class HueTimeInterval:
 
 		return s
 
+	def strftime_start(self, fmt=None):
+		return self._strftime(self.start, fmt)
+
+	def strftime_end(self, fmt=None):
+		return self._strftime(self.end, fmt)
+
+	def _strftime(self, ts, fmt=None):
+		if fmt is None:
+			fmt='%H:%M:%S %Z'
+		return ts.strftime(fmt)
+
 #============================================================================
 # HueTimer: A timer that expires after the given span 
 #============================================================================
@@ -290,6 +299,11 @@ class HueTimer:
 			s+= ' randomized by '+self.random.strftime('%H:%M:%S')
 
 		return s
+
+	def strftime(self, fmt=None):
+		if fmt is None:
+			fmt='%H:%M:%S'
+		return self.duration.strftime(fmt)
 
 #============================================================================
 # HueRecurringTimer: A recurring timer that repeats N times

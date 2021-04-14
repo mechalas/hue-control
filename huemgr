@@ -5,7 +5,7 @@ from huectl.bridge import HueBridge, HueBridgeSearch, HueDeviceScanResults
 from huectl.group import HueGroup, HueGroupType, HueRoom
 from huectl.scene import HueScene, HueSceneType
 from huectl.light import HueAlertEffect, HueDynamicEffect, HueLightStateChange, HueColorMode
-from huectl.time import HueDateTime, HueRecurringTime, HueTimeInterval
+from huectl.time import HueDateTime, HueRecurringTime, HueTimeInterval, HueTimer, HueRecurringTimer
 from huectl.color import HueColor, HueColorxyY, HueColorHSB, HueColorTemp, rgb_to_hsb, map_range
 import huectl.colorwheel as colorwheel
 from argparse import ArgumentParser
@@ -1316,6 +1316,23 @@ def do_schedule(args):
 			dt= sched.localtime.strftime()
 			days= sched.localtime.daysofweek()
 			sinfo+= f' {days} starting at {dt}'
+		elif isinstance(sched.localtime, HueTimeInterval):
+			days= sched.localtime.daysofweek()
+			sinfo+= ' {days}'
+			tstart= sched.localtime.strftime_start()
+			tend= sched.localtime.strftime_end()
+			sinfo+= f' from {tstart} to {tend}'
+		elif isinstance(sched.localtime, HueTimer):
+			dt= sched.localtime.strftime()
+			sinfo+= f', {dt} timer'
+		elif isinstance(sched.localtime, HueRecurringTimer):
+			dt= sched.localtime.strftime()
+			sinfo+= f', {dt} timer, '
+			if sched.localtime.repeat is None:
+				sinfo+= 'repeating indefinitely'
+			else:
+				sinfo+= 'repeating {sched.localtime.repeat} times'
+
 		print(sinfo)
 		cmd= sched.command
 #		target= sched.command.target()
