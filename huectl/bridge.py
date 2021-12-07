@@ -184,7 +184,7 @@ class HueBridge:
 	# know something has changed, but it won't be aware of changes made in
 	# other applications. Hence, we don't want to make this too long or
 	# the user will wonder why those changes don't show up.
-	CacheRefreshInterval= 60
+	CacheRefreshInterval= 10
 
 	# How often to refresh lights and sensors in the cache (in seconds).
 	# This should generally be really short since light and sensor states
@@ -807,7 +807,7 @@ class HueBridge:
 			raise huectl.exception.BadResponse(rv)
 
 		if self.cache:
-			self.mark_dirty('scenes')
+			self.cache.mark_dirty('scenes')
 			self.cache.delete_oid('scene_attrs', sceneid)
 
 	def create_scene(self, scenedef, sceneid=None):
@@ -833,7 +833,7 @@ class HueBridge:
 			raise huectl.exception.BadResponse(rv)
 
 		if self.cache:
-			self.mark_dirty('scenes')
+			self.cache.mark_dirty('scenes')
 
 		# Return the new scene's id
 		return rv[0]['success']['id']
